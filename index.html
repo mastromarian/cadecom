@@ -125,6 +125,12 @@ thead th { position: relative; }
 
 tr[style*="fde8c8"] td { background: #fde8c8 !important; }
 
+/* Column resize */
+thead th { position: relative; user-select: none; }
+.col-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 8px; cursor: col-resize; background: transparent; }
+.col-resize:hover { background: rgba(255,255,255,.3); }
+
+
 /* TOGGLE */
 .btn-toggle {
   border: 1.5px solid #2E5FA3; background: #fff; color: #2E5FA3;
@@ -660,43 +666,34 @@ function updateInsights() {
   document.getElementById('ins-worst-body').innerHTML=mkRows(worst)+mkTotal(worst);
   document.getElementById('ins-best-head').innerHTML =mkHead('best');
   document.getElementById('ins-best-body').innerHTML =mkRows(best)+mkTotal(best);
-  ['ins-brands-head','ins-worst-head','ins-best-head'].forEach(id => makeResizable(document.getElementById(id)?.closest('table')));
+
 
   generateAutoInsights(allFiltered, mA, mB, lA, lB);
 }
 
 
-// --- Resizable columns ---
-function makeResizable(tableEl) {
-  if (!tableEl) return;
-  tableEl.style.tableLayout = 'fixed';
-  tableEl.style.width = '100%';
-  const ths = tableEl.querySelectorAll('thead th');
-  ths.forEach(th => {
-    if (th.querySelector('.col-resizer')) return;
-    // Measure minimum width from text content
-    const clone = th.cloneNode(true);
-    clone.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;width:auto;padding:6px 16px';
-    document.body.appendChild(clone);
-    const minW = clone.offsetWidth + 10;
-    document.body.removeChild(clone);
 
+function enableColumnResize(table) {
+  if (!table || table.dataset.resizable) return;
+  table.dataset.resizable = 'true';
+  const ths = table.querySelectorAll('th');
+  ths.forEach((th, i) => {
+    if (i === ths.length - 1) return;
     const handle = document.createElement('div');
-    handle.className = 'col-resizer';
+    handle.className = 'col-resize';
     th.appendChild(handle);
-    let startX, startW;
     handle.addEventListener('mousedown', e => {
-      startX = e.pageX;
-      startW = th.offsetWidth;
-      handle.classList.add('resizing');
+      const nextTh = ths[i + 1];
+      if (!nextTh) return;
+      const startX = e.clientX;
+      const startW1 = th.offsetWidth;
+      const startW2 = nextTh.offsetWidth;
       const onMove = ev => {
-        const w = Math.max(minW, startW + ev.pageX - startX);
-        th.style.width = w + 'px';
-        th.style.minWidth = w + 'px';
-        th.style.maxWidth = w + 'px';
+        const delta = ev.clientX - startX;
+        th.style.width = Math.max(60, startW1 + delta) + 'px';
+        nextTh.style.width = Math.max(60, startW2 - delta) + 'px';
       };
       const onUp = () => {
-        handle.classList.remove('resizing');
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
       };
@@ -706,7 +703,6 @@ function makeResizable(tableEl) {
     });
   });
 }
-
 // --- Boot ---
 document.getElementById('last-update').textContent = typeof LAST_UPDATE !== 'undefined' ? LAST_UPDATE : '—';
 
