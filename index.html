@@ -213,6 +213,12 @@ thead th { position: relative; user-select: none; }
     </select>
   </div>
   <div class="filter-group" style="min-width:auto">
+    <label>Zona</label>
+    <select id="f-zona" style="width:130px" onchange="onZoneChange()">
+      <option value="">Todas</option>
+    </select>
+  </div>
+  <div class="filter-group" style="min-width:auto">
     <label>Provincia</label>
     <select id="f-provincia" style="width:130px" onchange="onProvinceChange()">
       <option value="">Todas</option>
@@ -328,12 +334,14 @@ document.addEventListener('click', e => {
 function getFiltered() {
   const cil       = document.getElementById('f-cil').value;
   const modelo    = document.getElementById('f-modelo').value;
+  const zona       = document.getElementById('f-zona').value;
   const provincia = document.getElementById('f-provincia').value;
   const localidad = document.getElementById('f-localidad').value;
   return RAW_DATA.filter(r =>
     (msState.marca.size === 0 || msState.marca.has(r.marca)) &&
     (!cil       || r.cilindrada === cil) &&
     (!modelo    || r.modelo === modelo) &&
+    (!zona      || (r.zonas && r.zonas.includes(zona))) &&
     (!provincia || (r.provincias && r.provincias.includes(provincia))) &&
     (!localidad || (r.localidades && r.localidades.includes(localidad)))
   );
@@ -348,6 +356,10 @@ function initFilters() {
   selCil.innerHTML = '<option value="">Todas</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
   
   // Provincias
+  const allZonas = [...new Set(RAW_DATA.flatMap(r => r.zonas || []))].sort();
+  const selZona = document.getElementById('f-zona');
+  selZona.innerHTML = '<option value="">Todas</option>' + allZonas.map(z => `<option value="${z}">${z}</option>`).join('');
+  
   const allProvs = [...new Set(RAW_DATA.flatMap(r => r.provincias || []))].sort();
   const selProv = document.getElementById('f-provincia');
   selProv.innerHTML = '<option value="">Todas</option>' + allProvs.map(p => `<option value="${p}">${p}</option>`).join('');
@@ -376,6 +388,7 @@ function resetFilters() {
   updateMsTrigger('marca');
   document.getElementById('f-cil').value = '';
   document.getElementById('f-modelo').value = '';
+  document.getElementById('f-zona').value = '';
   document.getElementById('f-provincia').value = '';
   document.getElementById('f-localidad').value = '';
   populateModelos();
@@ -738,6 +751,10 @@ function populateLocalidades() {
   const prev = selLoc.value;
   selLoc.innerHTML = '<option value="">Todas</option>' + locs.map(l => `<option value="${l}">${l}</option>`).join('');
   if (locs.includes(prev)) selLoc.value = prev;
+}
+
+function onZoneChange() {
+  onProvinceChange();
 }
 
 function onProvinceChange() {

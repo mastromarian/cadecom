@@ -39,11 +39,16 @@ for lf in loc_files:
         pass
 print(f'Localidad map: {len(loc_map)} modelos con localidades')
 
-# Build provincia map: localidad → provincia
-ZONA_FILE = r'C:\Users\Mariano Mastronardi\Desktop\Pacheco\Cadecom\Fuentes\Zona - Provincia - Localidad\consulta_periodo_2026-01-01_2026-12-31_20260531_234456.xlsx'
+# Build provincia and zona maps
+ZONA_FILE1 = r'C:\Users\Mariano Mastronardi\Desktop\Pacheco\Cadecom\Fuentes\Zona - Provincia - Localidad\consulta_periodo_2026-01-01_2026-12-31_20260531_234456.xlsx'
+ZONA_FILE2 = r'C:\Users\Mariano Mastronardi\Desktop\Pacheco\Cadecom\Fuentes\Zona - Provincia - Localidad\consulta_periodo_2026-01-01_2026-12-31_20260531_234504.xlsx'
+
 prov_map = {}  # localidad → provincia
+zona_map = {}  # provincia → zona
+
+# File 1: localidad → provincia
 try:
-    df_zona = pd.read_excel(ZONA_FILE, sheet_name='Consulta', header=0)
+    df_zona = pd.read_excel(ZONA_FILE1, sheet_name='Consulta', header=0)
     for _, row in df_zona.iterrows():
         localidad = str(row.get('Localidad', '')).strip()
         provincia = str(row.get('Provincia', '')).strip()
@@ -51,7 +56,20 @@ try:
             prov_map[localidad] = provincia
 except:
     pass
+
+# File 2: provincia → zona
+try:
+    df_zona2 = pd.read_excel(ZONA_FILE2, sheet_name='Consulta', header=0)
+    for _, row in df_zona2.iterrows():
+        provincia = str(row.get('Provincia', '')).strip()
+        zona = str(row.get('Zona', '')).strip()
+        if provincia and provincia != 'nan' and zona and zona != 'nan':
+            zona_map[provincia] = zona
+except:
+    pass
+
 print(f'Provincia map: {len(prov_map)} localidades')
+print(f'Zona map: {len(zona_map)} provincias')
 
 # Also merge the cilindrada file that lives in Marca-Modelo folder
 CIL_FILE_LEGACY = os.path.join(FOLDER, 'consulta_periodo_2026-01-01_2026-05-31_20260529_233621.xlsx')
@@ -124,12 +142,15 @@ for (marca, modelo), month_data in combined.items():
     cil = cil_map.get(modelo, 'Sin categoría')
     locs = list(loc_map.get(modelo, []))
     provs = sorted(set(prov_map.get(loc, '') for loc in locs if prov_map.get(loc)))
+    zonas = sorted(set(zona_map.get(prov, '') for prov in provs if zona_map.get(prov)))
 
     rec = {'marca': marca, 'modelo': modelo, 'cilindrada': cil}
     if locs:
         rec['localidades'] = locs
     if provs:
         rec['provincias'] = provs
+    if zonas:
+        rec['zonas'] = zonas
 
     total = 0
     for m in all_months:
