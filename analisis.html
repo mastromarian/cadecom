@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CADECOM — Variaciones del mes</title>
+<script src="data.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
+
+/* HEADER */
+header {
+  background: linear-gradient(135deg, #1F3864 0%, #2E5FA3 100%);
+  color: #fff; padding: 8px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  position: sticky; top: 0; z-index: 100;
+}
+header h1 { font-size: 15px; font-weight: 700; }
+header p  { font-size: 11px; opacity: .8; margin-top: 1px; }
+.badge { background: rgba(255,255,255,.15); border-radius: 20px; padding: 5px 14px; font-size: 11px; }
+
+/* NAV */
+.nav-bar {
+  background: #e4e9f2; border-bottom: 2px solid #c8d0e0;
+  padding: 0 28px; display: flex; gap: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  position: sticky; top: 0; z-index: 99;
+}
+.nav-item {
+  display: inline-flex; align-items: center;
+  padding: 6px 16px; font-size: 12px; font-weight: 600; color: #555;
+  text-decoration: none; white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  transition: color .15s, border-color .15s; margin-bottom: -2px;
+}
+.nav-item:hover { color: #2E5FA3; border-bottom-color: #9DC3E6; }
+.nav-item.active { color: #1F3864; border-bottom-color: #2E5FA3; }
+.nav-item.disabled { color: #bbb; cursor: default; pointer-events: none; }
+
+/* FILTERS BAR */
+.filters-bar {
+  background: #fff; border-bottom: 1px solid #dde3ee;
+  padding: 8px 20px;
+  display: flex; flex-wrap: nowrap; gap: 8px; align-items: flex-end;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08); overflow-x: auto;
+  position: sticky; top: 0; z-index: 98;
+}
+.filter-group { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex-shrink: 0; }
+.filter-group label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #888; font-weight: 600; white-space: nowrap; }
+.filter-group select, .filter-group input:not([type=checkbox]) {
+  border: 1px solid #ccd5e8; border-radius: 6px; padding: 5px 8px;
+  font-size: 12px; background: #f7f9fd; color: #1F3864; outline: none;
+  cursor: pointer; min-width: 0;
+}
+.filter-group select:focus { border-color: #2E5FA3; background: #fff; }
+.btn-reset {
+  background: #1F3864; color: #fff; border: none; border-radius: 6px;
+  padding: 5px 14px; font-size: 12px; cursor: pointer; align-self: flex-end;
+  transition: background .15s; white-space: nowrap; flex-shrink: 0;
+}
+.btn-reset:hover { background: #2E5FA3; }
+
+/* MULTISELECT */
+.ms-wrap { position: relative; width: 130px; flex-shrink: 0; }
+.ms-trigger {
+  border: 1px solid #ccd5e8; border-radius: 6px; padding: 5px 24px 5px 8px;
+  font-size: 12px; background: #f7f9fd; color: #1F3864;
+  cursor: pointer; user-select: none; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; min-height: 29px;
+  display: flex; align-items: center; position: relative;
+}
+.ms-trigger::after { content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #888; }
+.ms-trigger.open { border-color: #2E5FA3; background: #fff; }
+.ms-dropdown {
+  display: none; position: fixed;
+  background: #fff; border: 1px solid #ccd5e8; border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); z-index: 9999;
+  min-width: 180px; max-height: 220px; overflow-y: auto;
+}
+.ms-dropdown.open { display: block; }
+.ms-search { padding: 5px 8px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: #fff; }
+.ms-search input { width: 100%; border: 1px solid #dde3ee; border-radius: 4px; padding: 5px 8px; font-size: 12px; outline: none; }
+.ms-search input:focus { border-color: #2E5FA3; }
+.ms-actions { padding: 4px 8px; border-bottom: 1px solid #eee; display: flex; gap: 8px; position: sticky; top: 41px; background: #fff; }
+.ms-actions button { font-size: 11px; color: #2E5FA3; background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
+.ms-list { padding: 2px 0; }
+.ms-item { display: flex; align-items: center; justify-content: flex-start; gap: 6px; width: 100%; box-sizing: border-box; padding: 3px 10px; cursor: pointer; font-size: 11px; white-space: nowrap; }
+.ms-item:hover { background: #f0f3f8; }
+.ms-item input[type=checkbox] { width: 12px; height: 12px; margin: 0; padding: 0; accent-color: #2E5FA3; flex-shrink: 0; cursor: pointer; }
+.ms-item span { text-align: left; }
+.ms-count { display: inline-block; background: #2E5FA3; color: #fff; border-radius: 10px; font-size: 10px; padding: 1px 6px; margin-left: 4px; }
+
+/* MAIN */
+.main { max-width: 100%; margin: 0 auto; padding: 16px 20px; }
+
+/* CARDS */
+.card { background: #fff; border-radius: 10px; padding: 18px 22px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 20px; }
+.card h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1F3864; margin-bottom: 14px; }
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
+thead th {
+  background: #1F3864; color: #fff; padding: 7px 8px;
+  text-align: right; font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .4px; white-space: nowrap;
+  position: sticky; top: 0; z-index: 1;
+}
+thead th:first-child { text-align: center; }
+thead th:nth-child(2), thead th:nth-child(3) { text-align: left; }
+tbody tr:nth-child(even) { background: #f5f7fc; }
+tbody tr:hover { background: #e8edf8; }
+tbody td { padding: 5px 8px; text-align: right; border-bottom: 1px solid #eee; white-space: nowrap; }
+.neg { color: #e74c3c; font-weight: 600; }
+.pos { color: #27ae60; font-weight: 600; }
+.total-row td { background: #d9e1f2 !important; font-weight: 700; border-top: 2px solid #2E5FA3; }
+
+/* TOGGLE */
+.btn-toggle {
+  border: 1.5px solid #2E5FA3; background: #fff; color: #2E5FA3;
+  border-radius: 6px; padding: 5px 14px; font-size: 12px; cursor: pointer; transition: all .15s;
+}
+.btn-toggle.active { background: #2E5FA3; color: #fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>CADECOM — Variaciones del mes</h1>
+    <p>Actualizado: <span id="last-update">—</span></p>
+  </div>
+  <div class="badge">Portal v2</div>
+</header>
+
+<nav class="nav-bar">
+  <a href="analisis.html" class="nav-item active">🔍 Cadecom — Variaciones del mes</a>
+  <a href="index.html"    class="nav-item">📊 Cadecom — Evolutivo</a>
+  <a href="pacheco.html"  class="nav-item" style="display:none">🏍 Ventas Pacheco</a>
+</nav>
+
+<div class="filters-bar">
+  <div class="filter-group" style="min-width:auto">
+    <label>Mes A</label>
+    <select id="ins-month-a" style="width:90px" onchange="updateInsights()"></select>
+  </div>
+  <div class="filter-group" style="min-width:auto">
+    <label>Mes B</label>
+    <select id="ins-month-b" style="width:90px" onchange="updateInsights()"></select>
+  </div>
+  <div class="filter-group">
+    <label>Marca</label>
+    <div class="ms-wrap" id="ms-marca-wrap">
+      <div class="ms-trigger" id="ms-marca-trigger" onclick="toggleMs('marca',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-marca-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar marca…" oninput="filterMsList('marca',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('marca')">Seleccionar todo</button>
+          <button onclick="clearMs('marca')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-marca-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-group" style="min-width:auto">
+    <label>Top marcas</label>
+    <select id="ins-topn-brands" style="width:72px" onchange="updateInsights()">
+      <option value="5">Top 5</option>
+      <option value="10" selected>Top 10</option>
+      <option value="15">Top 15</option>
+      <option value="20">Top 20</option>
+      <option value="9999">Todas</option>
+    </select>
+  </div>
+  <div class="filter-group" style="min-width:auto">
+    <label>Top N modelos</label>
+    <select id="ins-topn" style="width:72px" onchange="updateInsights()">
+      <option value="5">Top 5</option>
+      <option value="10" selected>Top 10</option>
+      <option value="15">Top 15</option>
+      <option value="20">Top 20</option>
+      <option value="50">Top 50</option>
+      <option value="100">Top 100</option>
+      <option value="9999">Todos</option>
+    </select>
+  </div>
+  <div class="filter-group" style="min-width:auto">
+    <label>Cilindrada</label>
+    <select id="f-cil" style="width:110px" onchange="updateInsights()">
+      <option value="">Todas</option>
+    </select>
+  </div>
+  <div class="filter-group" style="min-width:auto">
+    <label>Mín. unid.</label>
+    <input type="number" id="ins-min" value="50" min="1" style="width:56px;border:1px solid #ccd5e8;border-radius:6px;padding:5px 6px;font-size:12px;text-align:center;background:#f7f9fd" onchange="updateInsights()">
+  </div>
+  <button class="btn-reset" onclick="resetFilters()">Limpiar filtros</button>
+</div>
+
+<div class="main">
+
+  <!-- Variaciones del mes -->
+  <div class="card" style="margin-bottom:20px">
+
+    <!-- Insights automáticos -->
+    <div id="auto-insights" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8edf8"></div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr) minmax(0,1fr);gap:10px 16px;align-items:start;margin-bottom:20px;overflow:hidden">
+
+      <!-- Fila 1: headers de sección -->
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px">Marcas</div>
+      <div style="grid-column:2/4;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px">Modelos</div>
+
+      <!-- Fila 2: sub-headers -->
+      <div></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#e74c3c">📉 Peor variación</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#27ae60">📈 Mejor variación</div>
+
+      <!-- Fila 3: tablas -->
+      <div class="tbl-wrap" style="min-width:0"><table><thead id="ins-brands-head"></thead><tbody id="ins-brands-body"></tbody></table></div>
+      <div class="tbl-wrap" style="min-width:0"><table><thead id="ins-worst-head"></thead><tbody id="ins-worst-body"></tbody></table></div>
+      <div class="tbl-wrap" style="min-width:0"><table><thead id="ins-best-head"></thead><tbody id="ins-best-body"></tbody></table></div>
+
+    </div>
+  </div>
+
+
+</div>
+
+<script>
+const MONTHS = ["01-2015","02-2015","03-2015","04-2015","05-2015","06-2015","07-2015","08-2015","09-2015","10-2015","11-2015","12-2015","01-2016","02-2016","03-2016","04-2016","05-2016","06-2016","07-2016","08-2016","09-2016","10-2016","11-2016","12-2016","01-2017","02-2017","03-2017","04-2017","05-2017","06-2017","07-2017","08-2017","09-2017","10-2017","11-2017","12-2017","01-2018","02-2018","03-2018","04-2018","05-2018","06-2018","07-2018","08-2018","09-2018","10-2018","11-2018","12-2018","01-2019","02-2019","03-2019","04-2019","05-2019","06-2019","07-2019","08-2019","09-2019","10-2019","11-2019","12-2019","01-2020","02-2020","03-2020","04-2020","05-2020","06-2020","07-2020","08-2020","09-2020","10-2020","11-2020","12-2020","01-2022","02-2022","03-2022","04-2022","05-2022","06-2022","07-2022","08-2022","09-2022","10-2022","11-2022","12-2022","01-2023","02-2023","03-2023","04-2023","05-2023","06-2023","07-2023","08-2023","09-2023","10-2023","11-2023","12-2023","01-2024","02-2024","03-2024","04-2024","05-2024","06-2024","07-2024","08-2024","09-2024","10-2024","11-2024","12-2024","01-2025","02-2025","03-2025","04-2025","05-2025","06-2025","07-2025","08-2025","09-2025","10-2025","11-2025","12-2025","01-2026","02-2026","03-2026","04-2026","05-2026"];
+const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '/' + mm; });
+
+// --- Multiselect ---
+const msState = { marca: new Set() };
+const msAllItems = { marca: [] };
+
+function buildMsList(key, items) {
+  msAllItems[key] = items;
+  const list = document.getElementById(`ms-${key}-list`);
+  list.innerHTML = items.map(v =>
+    `<label class="ms-item"><input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span></label>`
+  ).join('');
+}
+function filterMsList(key, q) {
+  const items = msAllItems[key].filter(v => v.toLowerCase().includes(q.toLowerCase()));
+  document.getElementById(`ms-${key}-list`).innerHTML = items.map(v =>
+    `<label class="ms-item"><input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span></label>`
+  ).join('');
+}
+function onMsChange(key, value, checked) {
+  if (checked) msState[key].add(value); else msState[key].delete(value);
+  updateMsTrigger(key); updateInsights();
+}
+function updateMsTrigger(key) {
+  const trigger = document.getElementById(`ms-${key}-trigger`);
+  const n = msState[key].size;
+  if (n === 0) trigger.innerHTML = 'Todas';
+  else if (n === 1) trigger.innerHTML = [...msState[key]][0];
+  else trigger.innerHTML = `${n} marcas <span class="ms-count">${n}</span>`;
+}
+function selectAllMs(key) {
+  document.querySelectorAll(`#ms-${key}-list input`).forEach(c => { c.checked = true; msState[key].add(c.value); });
+  updateMsTrigger(key); updateInsights();
+}
+function clearMs(key) {
+  msState[key].clear();
+  document.querySelectorAll(`#ms-${key}-list input`).forEach(c => c.checked = false);
+  updateMsTrigger(key); updateInsights();
+}
+function toggleMs(key, event) {
+  event && event.stopPropagation();
+  const drop = document.getElementById(`ms-${key}-drop`);
+  const trigger = document.getElementById(`ms-${key}-trigger`);
+  const isOpen = drop.classList.contains('open');
+  document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.ms-trigger.open').forEach(t => t.classList.remove('open'));
+  if (!isOpen) {
+    const rect = trigger.getBoundingClientRect();
+    drop.style.top  = (rect.bottom + 4) + 'px';
+    drop.style.left = rect.left + 'px';
+    drop.classList.add('open');
+    trigger.classList.add('open');
+  }
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ms-wrap')) {
+    document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.ms-trigger.open').forEach(t => t.classList.remove('open'));
+  }
+});
+
+function getFiltered() {
+  const cil = document.getElementById('f-cil').value;
+  return RAW_DATA.filter(r =>
+    (msState.marca.size === 0 || msState.marca.has(r.marca)) &&
+    (!cil || r.cilindrada === cil)
+  );
+}
+
+function initFilters() {
+  const marcas = [...new Set(RAW_DATA.map(r => r.marca))].sort();
+  buildMsList('marca', marcas);
+  const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
+  cats.push('Sin categoría');
+  const selCil = document.getElementById('f-cil');
+  selCil.innerHTML = '<option value="">Todas</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function resetFilters() {
+  msState.marca.clear();
+  buildMsList('marca', msAllItems.marca);
+  updateMsTrigger('marca');
+  document.getElementById('f-cil').value = '';
+  updateInsights();
+}
+
+// --- Sticky offsets ---
+function setStickyTops() {
+  const header  = document.querySelector('header');
+  const nav     = document.querySelector('.nav-bar');
+  const filters = document.querySelector('.filters-bar');
+  const hH = header.offsetHeight, nH = nav.offsetHeight;
+  nav.style.top     = hH + 'px';
+  filters.style.top = (hH + nH) + 'px';
+}
+window.addEventListener('load',   setStickyTops);
+window.addEventListener('resize', setStickyTops);
+
+// --- Brand colors (logo-inspired) ---
+const BRAND_COLORS = {
+  'YAMAHA':'#1F3C88','HONDA':'#CC0000','SUZUKI':'#1A5276',
+  'KAWASAKI':'#2E7D32','KTM':'#E65100','BMW':'#1C69D4',
+  'BAJAJ':'#1565C0','TVS':'#B71C1C','HERO':'#880E4F',
+  'BENELLI':'#6A1414','BETA':'#E65100','DUCATI':'#CC0000',
+  'TRIUMPH':'#003087','ROYAL ENFIELD':'#5D4037','HARLEY-DAVIDSON':'#F57C00',
+  'GILERA':'#C62828','MOTOMEL':'#1565C0','ZANELLA':'#006064',
+  'CORVEN':'#37474F','GUERRERO':'#4A148C','KELLER':'#1B5E20',
+  'MONDIAL':'#0D47A1','SIAM':'#4E342E','LIFAN':'#E53935',
+  'LONCIN':'#00838F','JAWA':'#D32F2F',
+};
+
+function getBrandColor(marca) {
+  if (BRAND_COLORS[marca.toUpperCase()]) return BRAND_COLORS[marca.toUpperCase()];
+  const hue = [...marca].reduce((h,c) => h + c.charCodeAt(0)*37, 0) % 360;
+  return `hsl(${hue},55%,35%)`;
+}
+
+// --- Brand logos (archivos locales en Logos/) ---
+// Nombre del archivo: debe coincidir con la clave (case-insensitive)
+// Agregar nuevas marcas acá cuando se sume el archivo en la carpeta Logos/
+const BRAND_LOGO_FILES = {
+  'YAMAHA':  'Fuentes/Logos/yamaha-logo.png',
+  'HONDA':   'Fuentes/Logos/logo-honda.png',
+  'KELLER':  'Fuentes/Logos/keller-logo.jfif',
+  'MOTOMEL': 'Fuentes/Logos/motomel-logo.png',
+  'GILERA':  'Fuentes/Logos/gilera-logo.png',
+  'CORVEN':  'Fuentes/Logos/corven-logo.png',
+  'ZANELLA': 'Fuentes/Logos/zanella-logo.png',
+  'MONDIAL': 'Fuentes/Logos/mondial-logo.png',
+};
+
+function brandBadge(marca) {
+  const hue = [...marca].reduce((h,c) => h + c.charCodeAt(0)*37, 0) % 360;
+  const fs  = marca.length > 8 ? '9px' : marca.length > 5 ? '10px' : '11px';
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:230px;height:50px;border-radius:6px;background:hsl(${hue},55%,38%);color:#fff;font-size:${fs};font-weight:700;flex-shrink:0;text-align:center;padding:3px;line-height:1.2">${marca}</span>`;
+}
+
+function brandLogoHtml(marca) {
+  const file = BRAND_LOGO_FILES[marca.toUpperCase()];
+  if (!file) return brandBadge(marca);
+  return `<img src="${file}" alt="${marca}" data-marca="${marca}"
+    style="width:230px;height:auto;max-height:80px;object-fit:contain;flex-shrink:0;vertical-align:middle"
+    onerror="this.outerHTML=brandBadge(this.dataset.marca)">`;
+}
+
+// --- Auto insights ---
+function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
+  const insights = [];
+
+  // Modelos con datos en ambos meses
+  const rows = [];
+  allFiltered.forEach(r => {
+    const uA = r[mA]||0, uB = r[mB]||0;
+    rows.push({ marca:r.marca, modelo:r.modelo, uA, uB,
+      varAbs:uB-uA, varPct:uA ? (uB-uA)/uA*100 : null });
+  });
+
+  // 1. Modelos nuevos (0 en A, >= 10 en B)
+  const newModels = rows.filter(r => r.uA === 0 && r.uB >= 10)
+    .sort((a,b) => b.uB - a.uB).slice(0,3);
+  if (newModels.length > 0) {
+    const names = newModels.map(r => `${r.marca} ${r.modelo} (${r.uB})`).join(', ');
+    insights.push({ icon:'🆕', color:'#1565C0', bg:'#e8f0fb',
+      text: `Modelo${newModels.length>1?'s':''} nuevo${newModels.length>1?'s':''} en ${lB}: ${names}` });
+  }
+
+  // 2. Mayor caída absoluta (min 30 uA)
+  const worstAbs = rows.filter(r => r.uA >= 30).sort((a,b) => a.varAbs - b.varAbs)[0];
+  if (worstAbs) insights.push({ icon:'📉', color:'#c62828', bg:'#fdf2f2',
+    text: `Mayor caída absoluta: ${worstAbs.marca} ${worstAbs.modelo} (${worstAbs.varAbs.toLocaleString('es-AR')} unid., ${worstAbs.varPct?.toFixed(1)}%)` });
+
+  // 3. Mayor crecimiento absoluto (min 10 uA)
+  const bestAbs = rows.filter(r => r.uA >= 10).sort((a,b) => b.varAbs - a.varAbs)[0];
+  if (bestAbs && bestAbs.varAbs > 0) insights.push({ icon:'📈', color:'#2e7d32', bg:'#eafaf1',
+    text: `Mayor crecimiento absoluto: ${bestAbs.marca} ${bestAbs.modelo} (+${bestAbs.varAbs.toLocaleString('es-AR')} unid., +${bestAbs.varPct?.toFixed(1)}%)` });
+
+  // 4. Marca con mayor caída total
+  const brandMap = {};
+  rows.forEach(r => {
+    if (!brandMap[r.marca]) brandMap[r.marca] = {a:0,b:0};
+    brandMap[r.marca].a += r.uA; brandMap[r.marca].b += r.uB;
+  });
+  const brandRows = Object.entries(brandMap)
+    .map(([m,v]) => ({marca:m,a:v.a,b:v.b,varAbs:v.b-v.a,varPct:v.a?(v.b-v.a)/v.a*100:null}))
+    .filter(r => r.a >= 100);
+  const worstBrand = brandRows.sort((a,b) => a.varPct - b.varPct)[0];
+  if (worstBrand) insights.push({ icon:'🔴', color:'#b71c1c', bg:'#fdf2f2',
+    text: `Marca más golpeada: ${worstBrand.marca} (${worstBrand.b.toLocaleString('es-AR')} unid. en ${lB}, ${worstBrand.varPct?.toFixed(1)}%)` });
+
+  // 5. Marca con mejor desempeño relativo (min 100 uA)
+  const bestBrand = brandRows.sort((a,b) => b.varPct - a.varPct)[0];
+  if (bestBrand) insights.push({ icon:'🟢', color:'#1b5e20', bg:'#eafaf1',
+    text: `Marca con mejor desempeño: ${bestBrand.marca} (${bestBrand.b.toLocaleString('es-AR')} unid. en ${lB}, ${bestBrand.varPct > 0 ? '+' : ''}${bestBrand.varPct?.toFixed(1)}%)` });
+
+  // 6. Modelos que desaparecieron (>= 30 en A, 0 en B)
+  const gone = rows.filter(r => r.uA >= 30 && r.uB === 0).sort((a,b) => b.uA - a.uA).slice(0,2);
+  if (gone.length > 0) {
+    const names = gone.map(r => `${r.marca} ${r.modelo} (${r.uA} en ${lA})`).join(', ');
+    insights.push({ icon:'⛔', color:'#6a1a1a', bg:'#fff3f3',
+      text: `Sin ventas en ${lB}: ${names}` });
+  }
+
+  // Mostrar top 5
+  const container = document.getElementById('auto-insights');
+  container.innerHTML = insights.slice(0,5).map(ins => `
+    <div style="display:flex;align-items:flex-start;gap:8px;background:${ins.bg};border-left:3px solid ${ins.color};
+      border-radius:6px;padding:8px 12px;font-size:12px;color:#1a1a2e;flex:1;min-width:200px;max-width:calc(50% - 4px)">
+      <span style="font-size:16px;flex-shrink:0">${ins.icon}</span>
+      <span>${ins.text}</span>
+    </div>`).join('');
+}
+
+// --- Sort state per table ---
+const sortState = {
+  brands: { col: 'b', dir: 1 },
+  worst:  { col: 'varPct', dir: -1 },
+  best:   { col: 'varPct', dir: 1 },
+};
+function sortBy(table, col) {
+  if (sortState[table].col === col) sortState[table].dir *= -1;
+  else { sortState[table].col = col; sortState[table].dir = col === 'marca' || col === 'modelo' ? 1 : -1; }
+  updateInsights();
+}
+function sortArr(arr, col, dir) {
+  return [...arr].sort((a,b) => {
+    let av = a[col] ?? -Infinity, bv = b[col] ?? -Infinity;
+    if (typeof av === 'string') return dir * av.localeCompare(bv);
+    return dir * (bv - av);
+  });
+}
+function thStyle(table, col) {
+  const s = sortState[table];
+  return `cursor:pointer;user-select:none${s.col===col?';background:#2E5FA3':''}" onclick="sortBy('${table}','${col}')`;
+}
+function arrow(table, col) {
+  const s = sortState[table];
+  return s.col === col ? (s.dir > 0 ? ' ↑' : ' ↓') : '';
+}
+
+// --- Insights / Variaciones del mes ---
+function updateInsights() {
+  const mA        = document.getElementById('ins-month-a').value;
+  const mB        = document.getElementById('ins-month-b').value;
+  const topN      = parseInt(document.getElementById('ins-topn').value) || 10;
+  const topBrands = parseInt(document.getElementById('ins-topn-brands').value) || 15;
+  const minU      = parseInt(document.getElementById('ins-min').value) || 1;
+  if (!mA || !mB) return;
+  const lA = MONTH_LABELS[MONTHS.indexOf(mA)];
+  const lB = MONTH_LABELS[MONTHS.indexOf(mB)];
+  const allFiltered = getFiltered();
+
+  // Top N marcas
+  const brandMap = {};
+  allFiltered.forEach(r => {
+    if (!brandMap[r.marca]) brandMap[r.marca] = { a:0, b:0 };
+    brandMap[r.marca].a += r[mA]||0; brandMap[r.marca].b += r[mB]||0;
+  });
+  const allBrandRows = Object.entries(brandMap)
+    .map(([marca,v]) => ({ marca, a:v.a, b:v.b, varAbs:v.b-v.a, varPct:v.a?(v.b-v.a)/v.a*100:null }))
+    .sort((x,y) => y.b-x.b);
+  // Totales del mercado completo (SIN filtro de mínimo)
+  const mktA = allBrandRows.reduce((s,b)=>s+b.a,0);
+  const mktB = allBrandRows.reduce((s,b)=>s+b.b,0);
+  // Filas mostradas: aplica filtro de mínimo
+  const brands = allBrandRows.filter(b => b.b >= minU).slice(0, topBrands);
+
+  const sortedBrands = sortArr(brands, sortState.brands.col, sortState.brands.dir);
+
+  document.getElementById('ins-brands-head').innerHTML = `<tr>
+    <th style="text-align:center;width:28px">#</th>
+    <th style="text-align:left;${thStyle('brands','marca')}">Marca${arrow('brands','marca')}</th>
+    <th style="text-align:right;${thStyle('brands','a')}">${lA}${arrow('brands','a')}</th>
+    <th style="text-align:right;${thStyle('brands','b')}">${lB}${arrow('brands','b')}</th>
+    <th style="text-align:right;white-space:nowrap;${thStyle('brands','varAbs')}">Var #${arrow('brands','varAbs')}</th>
+    <th style="text-align:right;white-space:nowrap;min-width:52px;${thStyle('brands','varPct')}">Var %${arrow('brands','varPct')}</th></tr>`;
+
+  document.getElementById('ins-brands-body').innerHTML = sortedBrands.map((b,i) => {
+    const cls=b.varAbs>0?'pos':b.varAbs<0?'neg':'', sign=b.varAbs>0?'+':'';
+    const pct=b.varPct!==null?`${sign}${b.varPct.toFixed(1)}%`:'—';
+    const color = getBrandColor(b.marca);
+    return `<tr>
+      <td style="text-align:center;color:#aaa;font-size:11px">${i+1}</td>
+      <td style="text-align:left;white-space:nowrap">
+        <span style="display:inline-flex;align-items:center;gap:5px">
+          <span style="display:inline-block;width:3px;height:16px;border-radius:2px;background:${color};flex-shrink:0"></span>
+          <span style="font-weight:700;font-size:12px;color:${color}">${b.marca}</span>
+        </span>
+      </td>
+      <td style="text-align:right">${b.a.toLocaleString('es-AR')}</td>
+      <td style="text-align:right;font-weight:700">${b.b.toLocaleString('es-AR')}</td>
+      <td class="${cls}" style="text-align:right">${sign}${b.varAbs.toLocaleString('es-AR')}</td>
+      <td class="${cls}" style="text-align:right;font-weight:700">${pct}</td></tr>`;
+  }).join('') + (() => {
+    const shownA = brands.reduce((s,b)=>s+b.a,0);
+    const shownB = brands.reduce((s,b)=>s+b.b,0);
+    const restoA = mktA - shownA, restoB = mktB - shownB;
+    const restoVar = restoA ? (restoB-restoA)/restoA*100 : null;
+    const rCls = restoB>restoA?'pos':restoB<restoA?'neg':'', rSign=restoB>restoA?'+':'';
+    const rPct = restoVar!==null?`${rSign}${restoVar.toFixed(1)}%`:'—';
+    const mktVar = mktA ? (mktB-mktA)/mktA*100 : null;
+    const mCls = mktB>mktA?'pos':mktB<mktA?'neg':'', mSign=mktB>mktA?'+':'';
+    const mPct = mktVar!==null?`${mSign}${mktVar.toFixed(1)}%`:'—';
+    return `
+      <tr style="background:#f5f7fc;border-top:1px dashed #c8d0e0">
+        <td style="text-align:center;color:#aaa;font-size:11px">—</td>
+        <td style="text-align:left;font-weight:600;color:#888;font-style:italic">Resto</td>
+        <td style="text-align:right;color:#888">${restoA.toLocaleString('es-AR')}</td>
+        <td style="text-align:right;font-weight:700;color:#888">${restoB.toLocaleString('es-AR')}</td>
+        <td class="${rCls}" style="text-align:right;color:#888">${rSign}${(restoB-restoA).toLocaleString('es-AR')}</td>
+        <td class="${rCls}" style="text-align:right;font-weight:700">${rPct}</td>
+      </tr>
+      <tr class="total-row">
+        <td style="text-align:center">—</td>
+        <td style="text-align:left;font-weight:700">TOTAL</td>
+        <td style="text-align:right">${mktA.toLocaleString('es-AR')}</td>
+        <td style="text-align:right">${mktB.toLocaleString('es-AR')}</td>
+        <td class="${mCls}" style="text-align:right">${mSign}${(mktB-mktA).toLocaleString('es-AR')}</td>
+        <td class="${mCls}" style="text-align:right">${mPct}</td>
+      </tr>`;
+  })();
+
+  // Modelos worst/best
+  const results = [];
+  allFiltered.forEach(r => {
+    const uA=r[mA]||0, uB=r[mB]||0;
+    if (uB < minU) return;
+    const varAbs=uB-uA, varPct=uA?varAbs/uA*100:null;
+    results.push({ marca:r.marca, modelo:r.modelo, uA, uB, varAbs, varPct });
+  });
+  const mkHead = (tbl) => `<tr>
+    <th style="text-align:center;width:24px">#</th>
+    <th style="text-align:left;width:70px;max-width:70px;${thStyle(tbl,'marca')}">Marca${arrow(tbl,'marca')}</th>
+    <th style="text-align:left;width:110px;max-width:110px;${thStyle(tbl,'modelo')}">Modelo${arrow(tbl,'modelo')}</th>
+    <th style="text-align:right;${thStyle(tbl,'uA')}">${lA}${arrow(tbl,'uA')}</th>
+    <th style="text-align:right;${thStyle(tbl,'uB')}">${lB}${arrow(tbl,'uB')}</th>
+    <th style="text-align:right;white-space:nowrap;${thStyle(tbl,'varAbs')}">Var #${arrow(tbl,'varAbs')}</th>
+    <th style="text-align:right;white-space:nowrap;min-width:52px;${thStyle(tbl,'varPct')}">Var %${arrow(tbl,'varPct')}</th></tr>`;
+  const mkRows = list => list.map((r,i) => {
+    const cls=r.varAbs>0?'pos':r.varAbs<0?'neg':'', sign=r.varAbs>0?'+':'';
+    const pct=r.varPct!==null?`${sign}${r.varPct.toFixed(1)}%`:'—';
+    const color = getBrandColor(r.marca);
+    return `<tr>
+      <td style="text-align:center;color:#aaa;font-size:11px">${i+1}</td>
+      <td style="text-align:left;max-width:70px;overflow:hidden">
+        <span style="display:inline-flex;align-items:center;gap:4px">
+          <span style="display:inline-block;width:3px;height:16px;border-radius:2px;background:${color};flex-shrink:0"></span>
+          <span style="font-weight:700;font-size:11px;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.marca}">${r.marca}</span>
+        </span>
+      </td>
+      <td style="text-align:left;font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.modelo}">${r.modelo}</td>
+      <td style="text-align:right">${r.uA.toLocaleString('es-AR')}</td>
+      <td style="text-align:right;font-weight:700">${r.uB.toLocaleString('es-AR')}</td>
+      <td class="${cls}" style="text-align:right">${sign}${r.varAbs.toLocaleString('es-AR')}</td>
+      <td class="${cls}" style="text-align:right;font-weight:700">${pct}</td></tr>`;
+  }).join('');
+  const worst = sortArr(results.filter(r=>r.varPct!==null).sort((a,b)=>(a.varPct??-Infinity)-(b.varPct??-Infinity)).slice(0,topN), sortState.worst.col, sortState.worst.dir);
+  const best  = sortArr(results.filter(r=>r.varPct!==null).sort((a,b)=>(b.varPct??-Infinity)-(a.varPct??-Infinity)).slice(0,topN), sortState.best.col,  sortState.best.dir);
+
+  // Totales globales SIN filtro de mínimo (mismo universo que marcas)
+  const allA = allFiltered.reduce((s,r)=>s+(r[mA]||0),0);
+  const allB = allFiltered.reduce((s,r)=>s+(r[mB]||0),0);
+
+  function mkTotal(list) {
+    const shownA=list.reduce((s,r)=>s+r.uA,0), shownB=list.reduce((s,r)=>s+r.uB,0);
+    const restoA=allA-shownA, restoB=allB-shownB;
+    const rVar=restoA?(restoB-restoA)/restoA*100:null;
+    const rCls=restoB>restoA?'pos':restoB<restoA?'neg':'', rSign=restoB>restoA?'+':'';
+    const rPct=rVar!==null?`${rSign}${rVar.toFixed(1)}%`:'—';
+    const tVar=allA?(allB-allA)/allA*100:null;
+    const tCls=allB>allA?'pos':allB<allA?'neg':'', tSign=allB>allA?'+':'';
+    const tPct=tVar!==null?`${tSign}${tVar.toFixed(1)}%`:'—';
+    return `
+      <tr style="background:#f5f7fc;border-top:1px dashed #c8d0e0">
+        <td style="text-align:center;color:#aaa;font-size:11px">—</td>
+        <td colspan="2" style="text-align:left;font-weight:600;color:#888;font-style:italic">Resto</td>
+        <td style="text-align:right;color:#888">${restoA.toLocaleString('es-AR')}</td>
+        <td style="text-align:right;font-weight:700;color:#888">${restoB.toLocaleString('es-AR')}</td>
+        <td class="${rCls}" style="text-align:right;color:#888">${rSign}${(restoB-restoA).toLocaleString('es-AR')}</td>
+        <td class="${rCls}" style="text-align:right;font-weight:700">${rPct}</td>
+      </tr>
+      <tr class="total-row">
+        <td style="text-align:center">—</td><td colspan="2" style="text-align:left;font-weight:700">TOTAL</td>
+        <td style="text-align:right">${allA.toLocaleString('es-AR')}</td>
+        <td style="text-align:right">${allB.toLocaleString('es-AR')}</td>
+        <td class="${tCls}" style="text-align:right">${tSign}${(allB-allA).toLocaleString('es-AR')}</td>
+        <td class="${tCls}" style="text-align:right">${tPct}</td>
+      </tr>`;
+  }
+
+  document.getElementById('ins-worst-head').innerHTML=mkHead('worst');
+  document.getElementById('ins-worst-body').innerHTML=mkRows(worst)+mkTotal(worst);
+  document.getElementById('ins-best-head').innerHTML =mkHead('best');
+  document.getElementById('ins-best-body').innerHTML =mkRows(best)+mkTotal(best);
+
+  generateAutoInsights(allFiltered, mA, mB, lA, lB);
+}
+
+// --- Boot ---
+document.getElementById('last-update').textContent = typeof LAST_UPDATE !== 'undefined' ? LAST_UPDATE : '—';
+
+// Init insights selectors
+const insOpts = MONTHS.map(m => `<option value="${m}">${MONTH_LABELS[MONTHS.indexOf(m)]}</option>`).join('');
+document.getElementById('ins-month-a').innerHTML = insOpts;
+document.getElementById('ins-month-b').innerHTML = insOpts;
+document.getElementById('ins-month-a').value = MONTHS[MONTHS.length - 2];
+document.getElementById('ins-month-b').value = MONTHS[MONTHS.length - 1];
+
+initFilters();
+updateInsights();
+</script>
+</body>
+</html>

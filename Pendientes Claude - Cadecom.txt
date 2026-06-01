@@ -1,0 +1,14 @@
+Pendientes Claude - Cadecom
+
+- quiero que el tamaño sea fijo y el ajuste de columnas no permita que no se vea alguna columna, es decir, el minimo es el ancho del titulo de la columna
+
+- quiero agregar filtros de zonas
+
+- quiero que "Resumen de novedades 2026.05" tenga títulos en los cuadrados y que el output sea bulleteado (ideal 5 - max 10)
+- los cuadrados de insights quiero que sean:
+(1) Cilindrada >> quiero ver la variación de cada cilindrada
+(2) Marcas >> quiero insights relevantes (ej: BMW crecio +45% es un outlier total o SIAM cayo -32% estando en top 20 tmb es llamativo)
+(3) Modelos >> quiero insights relevantes (ej: alguna caída o subida grande o algún modelo que le gano unidades a otra de la misma gama de cilindrada)
+(4) Zonas >> quiero ver variaciones de cada una
+
+- quiero que esos insights se acomoden al mes que elija (quiero agregar un selector de mes en esa seccion)

@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CADECOM — Evolutivo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="data.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
+
+/* HEADER */
+header {
+  background: linear-gradient(135deg, #1F3864 0%, #2E5FA3 100%);
+  color: #fff;
+  padding: 8px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  position: sticky; top: 0; z-index: 100;
+}
+header h1 { font-size: 15px; font-weight: 700; }
+header p  { font-size: 11px; opacity: .8; margin-top: 1px; }
+.badge { background: rgba(255,255,255,.15); border-radius: 20px; padding: 5px 14px; font-size: 11px; }
+
+/* NAV */
+.nav-bar {
+  background: #e4e9f2;
+  border-bottom: 2px solid #c8d0e0;
+  padding: 0 28px;
+  display: flex; gap: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  position: sticky; top: 0; z-index: 99;
+}
+.nav-item {
+  display: inline-flex; align-items: center;
+  padding: 6px 16px;
+  font-size: 12px; font-weight: 600; color: #555;
+  text-decoration: none; white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  transition: color .15s, border-color .15s;
+  margin-bottom: -2px;
+}
+.nav-item:hover { color: #2E5FA3; border-bottom-color: #9DC3E6; }
+.nav-item.active { color: #1F3864; border-bottom-color: #2E5FA3; }
+.nav-item.disabled { color: #bbb; cursor: default; pointer-events: none; }
+
+/* FILTERS BAR */
+.filters-bar {
+  background: #fff;
+  border-bottom: 1px solid #dde3ee;
+  padding: 8px 20px;
+  display: flex; flex-wrap: nowrap; gap: 8px; align-items: flex-end;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  overflow-x: auto;
+  position: sticky; top: 0; z-index: 98;
+}
+.filter-group { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex-shrink: 0; }
+.filter-group label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #888; font-weight: 600; white-space: nowrap; }
+.filter-group select, .filter-group input:not([type=checkbox]) {
+  border: 1px solid #ccd5e8; border-radius: 6px; padding: 5px 8px;
+  font-size: 12px; background: #f7f9fd; color: #1F3864; outline: none;
+  cursor: pointer; min-width: 0;
+}
+.filter-group select:focus { border-color: #2E5FA3; background: #fff; }
+.btn-reset {
+  background: #1F3864; color: #fff; border: none; border-radius: 6px;
+  padding: 5px 14px; font-size: 12px; cursor: pointer; align-self: flex-end;
+  transition: background .15s; white-space: nowrap; flex-shrink: 0;
+}
+.btn-reset:hover { background: #2E5FA3; }
+
+/* MULTISELECT */
+.ms-wrap { position: relative; width: 130px; flex-shrink: 0; }
+.ms-trigger {
+  border: 1px solid #ccd5e8; border-radius: 6px; padding: 5px 24px 5px 8px;
+  font-size: 12px; background: #f7f9fd; color: #1F3864;
+  cursor: pointer; user-select: none; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; min-height: 29px;
+  display: flex; align-items: center;
+  position: relative;
+}
+.ms-trigger::after {
+  content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+  font-size: 11px; color: #888;
+}
+.ms-trigger.open { border-color: #2E5FA3; background: #fff; }
+.ms-dropdown {
+  display: none; position: fixed;
+  background: #fff; border: 1px solid #ccd5e8; border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); z-index: 9999;
+  min-width: 180px; max-height: 220px; overflow-y: auto;
+}
+.ms-dropdown.open { display: block; }
+.ms-search {
+  padding: 5px 8px; border-bottom: 1px solid #eee;
+  position: sticky; top: 0; background: #fff;
+}
+.ms-search input {
+  width: 100%; border: 1px solid #dde3ee; border-radius: 4px;
+  padding: 5px 8px; font-size: 12px; outline: none;
+}
+.ms-search input:focus { border-color: #2E5FA3; }
+.ms-actions {
+  padding: 4px 8px; border-bottom: 1px solid #eee; display: flex; gap: 8px;
+  position: sticky; top: 41px; background: #fff;
+}
+.ms-actions button {
+  font-size: 11px; color: #2E5FA3; background: none; border: none;
+  cursor: pointer; padding: 0; text-decoration: underline;
+}
+.ms-list { padding: 2px 0; }
+.ms-item {
+  display: flex; align-items: center; justify-content: flex-start; gap: 6px;
+  width: 100%; box-sizing: border-box;
+  padding: 3px 10px; cursor: pointer; font-size: 11px; white-space: nowrap;
+}
+.ms-item:hover { background: #f0f3f8; }
+.ms-item input[type=checkbox] { width: 12px; height: 12px; margin: 0; padding: 0; accent-color: #2E5FA3; flex-shrink: 0; cursor: pointer; }
+.ms-item span { text-align: left; }
+.ms-count {
+  display: inline-block; background: #2E5FA3; color: #fff;
+  border-radius: 10px; font-size: 10px; padding: 1px 6px; margin-left: 4px;
+}
+
+/* MAIN */
+.main { max-width: 1400px; margin: 0 auto; padding: 20px 20px; }
+
+/* KPIs */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi {
+  background: #fff; border-radius: 10px; padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06); border-left: 4px solid #2E5FA3;
+  transition: transform .1s;
+}
+.kpi:hover { transform: translateY(-2px); }
+.kpi.kpi-red   { border-left-color: #e74c3c; }
+.kpi.kpi-green { border-left-color: #27ae60; }
+.kpi.kpi-gold  { border-left-color: #f39c12; }
+.kpi label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #999; }
+.kpi .val { font-size: 26px; font-weight: 700; color: #1F3864; margin: 5px 0 2px; }
+.kpi .val.neg { color: #e74c3c; }
+.kpi .val.pos { color: #27ae60; }
+.kpi .sub { font-size: 11px; color: #bbb; }
+
+/* TOGGLE */
+.view-toggle {
+  display: flex; gap: 6px; margin-bottom: 16px; align-items: center;
+}
+.view-toggle span { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #888; margin-right: 4px; }
+.btn-toggle {
+  border: 1.5px solid #2E5FA3; background: #fff; color: #2E5FA3;
+  border-radius: 6px; padding: 5px 14px; font-size: 12px; cursor: pointer; transition: all .15s;
+}
+.btn-toggle.active { background: #2E5FA3; color: #fff; }
+
+/* CARDS */
+.card {
+  background: #fff; border-radius: 10px; padding: 18px 22px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 20px;
+}
+.card h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1F3864; margin-bottom: 14px; }
+.chart-wrap { position: relative; width: 100%; }
+
+/* TABLE */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+thead th {
+  background: #1F3864; color: #fff; padding: 9px 10px;
+  text-align: right; font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .4px; white-space: nowrap;
+  position: sticky; top: 0; z-index: 1;
+}
+thead th:first-child, thead th:nth-child(2) { text-align: left; }
+tbody tr:nth-child(even) { background: #f5f7fc; }
+tbody tr:hover { background: #e8edf8; }
+tbody td { padding: 7px 10px; text-align: right; border-bottom: 1px solid #eee; white-space: nowrap; }
+tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align: left; font-weight: 600; }
+.total-row td { background: #d9e1f2 !important; font-weight: 700; border-top: 2px solid #2E5FA3; }
+
+/* Sticky first 4 columns — Tabla evolutiva */
+#tabla thead th:nth-child(1), #tabla tbody td:nth-child(1) { position: sticky; left: 0px;   z-index: 2; min-width: 36px;  max-width: 36px; }
+#tabla thead th:nth-child(2), #tabla tbody td:nth-child(2) { position: sticky; left: 36px;  z-index: 2; min-width: 110px; max-width: 110px; }
+#tabla thead th:nth-child(3), #tabla tbody td:nth-child(3) { position: sticky; left: 146px; z-index: 2; min-width: 130px; max-width: 130px; }
+#tabla thead th:nth-child(4), #tabla tbody td:nth-child(4) { position: sticky; left: 276px; z-index: 2; min-width: 110px; max-width: 110px; box-shadow: 2px 0 6px rgba(0,0,0,.12); }
+#tabla thead th:nth-child(1), #tabla thead th:nth-child(2), #tabla thead th:nth-child(3), #tabla thead th:nth-child(4) { z-index: 4; }
+#tabla tbody td:nth-child(1) { background: #f0f2f8; color: #aaa; font-size: 11px; text-align: center; }
+#tabla tbody td:nth-child(2), #tabla tbody td:nth-child(3), #tabla tbody td:nth-child(4) { background: #fff; }
+#tabla tbody tr:nth-child(even) td:nth-child(2),
+#tabla tbody tr:nth-child(even) td:nth-child(3),
+#tabla tbody tr:nth-child(even) td:nth-child(4) { background: #f5f7fc; }
+#tabla tbody tr:nth-child(even) td:nth-child(1) { background: #eaecf4; }
+#tabla tbody tr:hover td:nth-child(1),
+#tabla tbody tr:hover td:nth-child(2),
+#tabla tbody tr:hover td:nth-child(3),
+#tabla tbody tr:hover td:nth-child(4) { background: #e8edf8; }
+#tabla .total-row td:nth-child(1),
+#tabla .total-row td:nth-child(2),
+#tabla .total-row td:nth-child(3),
+#tabla .total-row td:nth-child(4) { background: #d9e1f2 !important; }
+
+/* Sticky first 3 columns — MoM table */
+#tabla-mom thead th { z-index: 1; }
+#tabla-mom thead tr:nth-child(2) th { z-index: 0; }
+#tabla-mom thead th.sc1 { position: sticky; left: 0px;   z-index: 4; min-width: 36px;  max-width: 36px; }
+#tabla-mom thead th.sc2 { position: sticky; left: 36px;  z-index: 4; min-width: 130px; max-width: 130px; }
+#tabla-mom thead th.sc3 { position: sticky; left: 166px; z-index: 4; min-width: 100px; max-width: 100px; box-shadow: 2px 0 6px rgba(0,0,0,.18); }
+#tabla-mom tbody td:nth-child(1) { position: sticky; left: 0px;   z-index: 2; min-width: 36px;  max-width: 36px;  background: #fff; }
+#tabla-mom tbody td:nth-child(2) { position: sticky; left: 36px;  z-index: 2; min-width: 130px; max-width: 130px; background: #fff; }
+#tabla-mom tbody td:nth-child(3) { position: sticky; left: 166px; z-index: 2; min-width: 100px; max-width: 100px; background: #fff; box-shadow: 2px 0 6px rgba(0,0,0,.12); }
+#tabla-mom tbody tr:nth-child(even) td:nth-child(1),
+#tabla-mom tbody tr:nth-child(even) td:nth-child(2),
+#tabla-mom tbody tr:nth-child(even) td:nth-child(3) { background: #f5f7fc; }
+#tabla-mom tbody tr:hover td:nth-child(1),
+#tabla-mom tbody tr:hover td:nth-child(2),
+#tabla-mom tbody tr:hover td:nth-child(3) { background: #e8edf8; }
+#tabla-mom .total-row td:nth-child(1),
+#tabla-mom .total-row td:nth-child(2),
+#tabla-mom .total-row td:nth-child(3) { background: #d9e1f2 !important; }
+.neg { color: #e74c3c; font-weight: 600; }
+.pos { color: #27ae60; font-weight: 600; }
+
+/* Ranking MoM tables */
+#tabla-top15 thead th, #tabla-worst15 thead th {
+  background: #1F3864; color: #fff; padding: 7px 8px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: .4px;
+  position: sticky; top: 0; z-index: 1;
+}
+#tabla-top15 tbody td, #tabla-worst15 tbody td { padding: 5px 8px; font-size: 11px; border-bottom: 1px solid #eee; white-space: nowrap; }
+#tabla-top15 tbody tr:nth-child(even), #tabla-worst15 tbody tr:nth-child(even) { background: #f5f7fc; }
+#tabla-top15 tbody tr:hover, #tabla-worst15 tbody tr:hover { background: #e8edf8; }
+
+/* share bar in table */
+.bar-wrap { display: flex; align-items: center; gap: 6px; }
+.bar-bg { background: #e8edf8; border-radius: 3px; height: 7px; width: 60px; flex-shrink: 0; overflow: hidden; }
+.bar-fg { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2E5FA3, #5B9BD5); }
+
+/* Pagination */
+.pagination { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: #666; }
+.pagination button { border: 1px solid #ccd5e8; background: #fff; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+.pagination button:hover { background: #f0f3f8; }
+.pagination button:disabled { opacity: .4; cursor: default; }
+
+/* Grid */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+@media (max-width: 900px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .grid2 { grid-template-columns: 1fr; }
+  .filters-bar { padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>CADECOM — Patentamientos</h1>
+    <p style="font-size:13px;opacity:.9">Actualizado: <span id="last-update">—</span></p>
+  </div>
+  <div class="badge">Portal v2</div>
+</header>
+
+<!-- NAV -->
+<nav class="nav-bar">
+  <a href="index.html" class="nav-item">🔍 Cadecom — Variaciones del mes</a>
+  <a href="evolutivo.html" class="nav-item active">📊 Cadecom — Evolutivo</a>
+  <a href="pacheco.html" class="nav-item" style="display:none">🏍 Ventas Pacheco</a>
+</nav>
+
+<!-- FILTERS -->
+<div class="filters-bar">
+  <div class="filter-group">
+    <label>Período desde</label>
+    <div style="display:flex;gap:4px">
+      <select id="f-desde-year" style="width:68px"></select>
+      <select id="f-desde-month" style="width:56px"></select>
+    </div>
+  </div>
+  <div class="filter-group">
+    <label>Período hasta</label>
+    <div style="display:flex;gap:4px">
+      <select id="f-hasta-year" style="width:68px"></select>
+      <select id="f-hasta-month" style="width:56px"></select>
+    </div>
+  </div>
+  <div class="filter-group">
+    <label>Marca</label>
+    <div class="ms-wrap" id="ms-marca-wrap">
+      <div class="ms-trigger" id="ms-marca-trigger" onclick="toggleMs('marca',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-marca-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar marca…" oninput="filterMsList('marca',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('marca')">Seleccionar todo</button>
+          <button onclick="clearMs('marca')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-marca-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-group">
+    <label>Modelo</label>
+    <div class="ms-wrap" id="ms-modelo-wrap">
+      <div class="ms-trigger" id="ms-modelo-trigger" onclick="toggleMs('modelo',event)">Todos</div>
+      <div class="ms-dropdown" id="ms-modelo-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar modelo…" oninput="filterMsList('modelo',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('modelo')">Seleccionar todo</button>
+          <button onclick="clearMs('modelo')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-modelo-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-group">
+    <label>Cilindrada</label>
+    <div class="ms-wrap" id="ms-cil-wrap">
+      <div class="ms-trigger" id="ms-cil-trigger" onclick="toggleMs('cil',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-cil-drop">
+        <div class="ms-actions" style="top:0">
+          <button onclick="selectAllMs('cil')">Seleccionar todo</button>
+          <button onclick="clearMs('cil')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-cil-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-group">
+    <label>Top N marcas</label>
+    <select id="f-topn" style="width:90px">
+      <option value="5">Top 5</option>
+      <option value="10" selected>Top 10</option>
+      <option value="15">Top 15</option>
+      <option value="20">Top 20</option>
+      <option value="0">Todas</option>
+    </select>
+  </div>
+  <button class="btn-reset" onclick="resetFilters()">Limpiar filtros</button>
+</div>
+
+<div class="main">
+
+
+
+  <!-- Chart evolutivo marca -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <h2 id="chart1-title" style="margin:0">Evolutivo por marca</h2>
+      <div class="view-toggle" style="margin:0">
+        <button class="btn-toggle active" id="btn-marca-nominal" onclick="setMetricMarca('nominal')">Nominal</button>
+        <button class="btn-toggle" id="btn-marca-pct" onclick="setMetricMarca('pct')">Líneas %</button>
+        <button class="btn-toggle" id="btn-marca-stacked" onclick="setMetricMarca('stacked')">Área 100%</button>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height:320px"><canvas id="chartEvolutivo"></canvas></div>
+  </div>
+
+  <!-- Chart evolutivo cilindrada -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <h2 id="chart-cil-title" style="margin:0">Evolutivo por cilindrada</h2>
+      <div class="view-toggle" style="margin:0">
+        <button class="btn-toggle active" id="btn-cil-nominal" onclick="setMetricCil('nominal')">Nominal</button>
+        <button class="btn-toggle" id="btn-cil-pct" onclick="setMetricCil('pct')">Líneas %</button>
+        <button class="btn-toggle" id="btn-cil-stacked" onclick="setMetricCil('stacked')">Área 100%</button>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height:320px"><canvas id="chartEvolCil"></canvas></div>
+  </div>
+
+
+  <!-- Table -->
+  <div class="card">
+    <h2>Tabla evolutiva por marca / modelo</h2>
+    <div class="tbl-wrap">
+      <table id="tabla">
+        <thead id="tabla-head"></thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span id="pag-info"></span>
+      <button id="pag-prev" onclick="changePage(-1)">‹ Anterior</button>
+      <button id="pag-next" onclick="changePage(1)">Siguiente ›</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const MONTHS = ["01-2015","02-2015","03-2015","04-2015","05-2015","06-2015","07-2015","08-2015","09-2015","10-2015","11-2015","12-2015","01-2016","02-2016","03-2016","04-2016","05-2016","06-2016","07-2016","08-2016","09-2016","10-2016","11-2016","12-2016","01-2017","02-2017","03-2017","04-2017","05-2017","06-2017","07-2017","08-2017","09-2017","10-2017","11-2017","12-2017","01-2018","02-2018","03-2018","04-2018","05-2018","06-2018","07-2018","08-2018","09-2018","10-2018","11-2018","12-2018","01-2019","02-2019","03-2019","04-2019","05-2019","06-2019","07-2019","08-2019","09-2019","10-2019","11-2019","12-2019","01-2020","02-2020","03-2020","04-2020","05-2020","06-2020","07-2020","08-2020","09-2020","10-2020","11-2020","12-2020","01-2022","02-2022","03-2022","04-2022","05-2022","06-2022","07-2022","08-2022","09-2022","10-2022","11-2022","12-2022","01-2023","02-2023","03-2023","04-2023","05-2023","06-2023","07-2023","08-2023","09-2023","10-2023","11-2023","12-2023","01-2024","02-2024","03-2024","04-2024","05-2024","06-2024","07-2024","08-2024","09-2024","10-2024","11-2024","12-2024","01-2025","02-2025","03-2025","04-2025","05-2025","06-2025","07-2025","08-2025","09-2025","10-2025","11-2025","12-2025","01-2026","02-2026","03-2026","04-2026","05-2026"];
+const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '/' + mm; });
+const COLORS = ['#1F3864','#2E5FA3','#4472C4','#5B9BD5','#9DC3E6','#F39C12','#E74C3C','#27AE60','#8E44AD','#16A085','#D35400','#2C3E50','#1ABC9C','#E67E22','#C0392B','#7F8C8D','#2980B9','#8E44AD','#27AE60','#F1C40F'];
+
+let metricMarca = 'nominal';
+let metricCil   = 'nominal';
+let currentPage = 1;
+const PAGE_SIZE = 25;
+let chartEvol = null, chartEvolCil = null;
+
+// --- Multiselect state ---
+const msState = { marca: new Set(), modelo: new Set(), cil: new Set() };
+const msAllItems = { marca: [], modelo: [], cil: [] };
+
+function buildMsList(key, items) {
+  msAllItems[key] = items;
+  const list = document.getElementById(`ms-${key}-list`);
+  list.innerHTML = items.map(v =>
+    `<label class="ms-item">
+      <input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span>
+    </label>`
+  ).join('');
+}
+
+function filterMsList(key, q) {
+  const items = msAllItems[key].filter(v => v.toLowerCase().includes(q.toLowerCase()));
+  const list = document.getElementById(`ms-${key}-list`);
+  list.innerHTML = items.map(v =>
+    `<label class="ms-item">
+      <input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span>
+    </label>`
+  ).join('');
+}
+
+function onMsChange(key, value, checked) {
+  if (checked) msState[key].add(value);
+  else msState[key].delete(value);
+  updateMsTrigger(key);
+  if (key === 'marca' || key === 'cil') rebuildModelos();
+  update();
+}
+
+function updateMsTrigger(key) {
+  const trigger = document.getElementById(`ms-${key}-trigger`);
+  const n = msState[key].size;
+  const label = key === 'marca' ? 'Todas' : 'Todos';
+  if (n === 0) {
+    trigger.innerHTML = label;
+  } else if (n === 1) {
+    trigger.innerHTML = `${[...msState[key]][0]}`;
+  } else {
+    trigger.innerHTML = `${n} seleccionadas <span class="ms-count">${n}</span>`;
+  }
+}
+
+function selectAllMs(key) {
+  const checks = document.querySelectorAll(`#ms-${key}-list input[type=checkbox]`);
+  checks.forEach(c => { c.checked = true; msState[key].add(c.value); });
+  updateMsTrigger(key);
+  if (key === 'marca') rebuildModelos();
+  update();
+}
+
+function clearMs(key) {
+  msState[key].clear();
+  document.querySelectorAll(`#ms-${key}-list input[type=checkbox]`).forEach(c => c.checked = false);
+  updateMsTrigger(key);
+  if (key === 'marca') rebuildModelos();
+  update();
+}
+
+function toggleMs(key, event) {
+  event && event.stopPropagation();
+  const drop = document.getElementById(`ms-${key}-drop`);
+  const trigger = document.getElementById(`ms-${key}-trigger`);
+  const isOpen = drop.classList.contains('open');
+  document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.ms-trigger.open').forEach(t => t.classList.remove('open'));
+  if (!isOpen) {
+    const rect = trigger.getBoundingClientRect();
+    drop.style.top  = (rect.bottom + 4) + 'px';
+    drop.style.left = rect.left + 'px';
+    drop.classList.add('open');
+    trigger.classList.add('open');
+  }
+}
+
+// close on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ms-wrap')) {
+    document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.ms-trigger.open').forEach(t => t.classList.remove('open'));
+  }
+});
+
+function rebuildModelos() {
+  const modelos = [...new Set(
+    RAW_DATA.filter(r =>
+      (msState.marca.size === 0 || msState.marca.has(r.marca)) &&
+      (msState.cil.size   === 0 || msState.cil.has(r.cilindrada))
+    ).map(r => r.modelo)
+  )].sort();
+  msState.modelo = new Set([...msState.modelo].filter(m => modelos.includes(m)));
+  buildMsList('modelo', modelos);
+  updateMsTrigger('modelo');
+}
+
+// --- Period filter helpers ---
+const PERIOD_YEARS   = [...new Set(MONTHS.map(m => m.split('-')[1]))].sort();
+const MONTH_NAMES    = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function getMonthsForYear(year) {
+  return MONTHS.filter(m => m.split('-')[1] === year).map(m => m.split('-')[0]);
+}
+
+function populateMonths(yearId, monthId, selectLast) {
+  const year = document.getElementById(yearId).value;
+  const months = getMonthsForYear(year);
+  const sel = document.getElementById(monthId);
+  const prev = sel.value;
+  sel.innerHTML = months.map(mm =>
+    `<option value="${mm}">${MONTH_NAMES[+mm-1]}</option>`
+  ).join('');
+  if (!selectLast && months.includes(prev)) sel.value = prev;
+  else if (selectLast) sel.value = months[months.length - 1];
+  else sel.value = months[0];
+}
+
+// --- Init filters ---
+function initFilters() {
+  // Populate year dropdowns
+  PERIOD_YEARS.forEach(y => {
+    document.getElementById('f-desde-year').innerHTML += `<option value="${y}">${y}</option>`;
+    document.getElementById('f-hasta-year').innerHTML += `<option value="${y}">${y}</option>`;
+  });
+  document.getElementById('f-hasta-year').value = PERIOD_YEARS[PERIOD_YEARS.length - 1];
+  populateMonths('f-hasta-year', 'f-hasta-month', true);
+  // Default desde = last 12 months
+  const desdeDefault = MONTHS[Math.max(0, MONTHS.length - 6)];
+  const [desdeM, desdeY] = desdeDefault.split('-');
+  document.getElementById('f-desde-year').value = desdeY;
+  populateMonths('f-desde-year', 'f-desde-month', false);
+  document.getElementById('f-desde-month').value = desdeM;
+
+  document.getElementById('f-desde-year').addEventListener('change', () => { populateMonths('f-desde-year', 'f-desde-month', false); update(); });
+  document.getElementById('f-hasta-year').addEventListener('change', () => { populateMonths('f-hasta-year', 'f-hasta-month', true); update(); });
+  document.getElementById('f-desde-month').addEventListener('change', update);
+  document.getElementById('f-hasta-month').addEventListener('change', update);
+
+  const marcas = [...new Set(RAW_DATA.map(r => r.marca))].sort();
+  buildMsList('marca', marcas);
+  const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
+  cats.push('Sin categoría');
+  buildMsList('cil', cats);
+  rebuildModelos();
+
+  document.getElementById('f-topn').addEventListener('change', update);
+
+}
+
+function resetFilters() {
+  const [rDesdeM, rDesdeY] = MONTHS[Math.max(0, MONTHS.length - 6)].split('-');
+  document.getElementById('f-desde-year').value = rDesdeY;
+  populateMonths('f-desde-year', 'f-desde-month', false);
+  document.getElementById('f-desde-month').value = rDesdeM;
+  document.getElementById('f-hasta-year').value = PERIOD_YEARS[PERIOD_YEARS.length-1];
+  populateMonths('f-hasta-year', 'f-hasta-month', true);
+  msState.marca.clear();
+  msState.modelo.clear();
+  msState.cil.clear();
+  buildMsList('marca', msAllItems.marca);
+  buildMsList('cil', msAllItems.cil);
+  rebuildModelos();
+  updateMsTrigger('marca');
+  updateMsTrigger('modelo');
+  updateMsTrigger('cil');
+  document.getElementById('f-topn').value = '10';
+  update();
+}
+
+// --- Get filtered months ---
+function getActiveMths() {
+  const desde = document.getElementById('f-desde-month').value + '-' + document.getElementById('f-desde-year').value;
+  const hasta = document.getElementById('f-hasta-month').value + '-' + document.getElementById('f-hasta-year').value;
+  const i0 = MONTHS.indexOf(desde), i1 = MONTHS.indexOf(hasta);
+  if (i0 < 0 || i1 < 0 || i0 > i1) return MONTHS;
+  return MONTHS.slice(i0, i1+1);
+}
+
+// --- Filter & aggregate ---
+function getFiltered() {
+  return RAW_DATA.filter(r =>
+    (msState.marca.size  === 0 || msState.marca.has(r.marca)) &&
+    (msState.modelo.size === 0 || msState.modelo.has(r.modelo)) &&
+    (msState.cil.size    === 0 || msState.cil.has(r.cilindrada))
+  );
+}
+
+function aggregateByBrand(data, mths) {
+  const map = {};
+  data.forEach(r => {
+    if (!map[r.marca]) map[r.marca] = { marca: r.marca, mths: {} };
+    mths.forEach(m => { map[r.marca].mths[m] = (map[r.marca].mths[m] || 0) + (r[m] || 0); });
+  });
+  return Object.values(map).map(b => ({
+    ...b,
+    total: mths.reduce((s, m) => s + b.mths[m], 0)
+  })).sort((a,b) => b.total - a.total);
+}
+
+function aggregateByBrandModel(data, mths) {
+  return data.map(r => ({
+    marca: r.marca, modelo: r.modelo, cilindrada: r.cilindrada || 'Sin categoría',
+    mths: Object.fromEntries(mths.map(m => [m, r[m]||0])),
+    total: mths.reduce((s,m) => s + (r[m]||0), 0)
+  })).sort((a,b) => b.total - a.total);
+}
+
+// --- KPIs ---
+function updateKPIs() { /* KPIs removed */ }
+
+// --- Charts ---
+function destroyChart(c) { if (c) c.destroy(); }
+
+function getTopN(brands) {
+  const n = parseInt(document.getElementById('f-topn').value);
+  return n === 0 ? brands : brands.slice(0, n);
+}
+
+function getTotalsPerMonth(brands, mths) {
+  return mths.map(m => brands.reduce((s,b) => s + b.mths[m], 0));
+}
+
+function updateChartEvol(brands, mths, marketTotals) {
+  destroyChart(chartEvol);
+  const top = getTopN(brands);
+  const totals = marketTotals || getTotalsPerMonth(brands, mths);
+  const labels = mths.map(m => MONTH_LABELS[MONTHS.indexOf(m)]);
+
+  const titles = {
+    nominal: 'Evolutivo por marca (unidades)',
+    pct:     'Evolutivo por marca (participación %)',
+    stacked: 'Evolutivo por marca — área 100%'
+  };
+  document.getElementById('chart1-title').textContent = titles[metricMarca];
+
+  if (metricMarca === 'stacked') {
+    // stacked 100% bar — "Resto" bucket for brands not in top
+    const allBrands = brands;
+    const topSet = new Set(top.map(b => b.marca));
+    const datasets = top.map((b, i) => ({
+      label: b.marca,
+      data: mths.map((m, mi) => totals[mi] ? +((b.mths[m] / totals[mi] * 100).toFixed(2)) : 0),
+      backgroundColor: COLORS[i % COLORS.length],
+      borderColor: '#fff',
+      borderWidth: 0.5,
+    }));
+    // Resto
+    const restoData = mths.map((m, mi) => {
+      const topSum = top.reduce((s, b) => s + b.mths[m], 0);
+      return totals[mi] ? +((( totals[mi] - topSum) / totals[mi] * 100).toFixed(2)) : 0;
+    });
+    if (restoData.some(v => v > 0)) {
+      datasets.push({ label: 'Resto', data: restoData, backgroundColor: '#dde3ee', borderColor: '#fff', borderWidth: 0.5 });
+    }
+
+    chartEvol = new Chart(document.getElementById('chartEvolutivo'), {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { font: { size: 10 }, boxWidth: 10, padding: 6 } },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`
+            }
+          }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: {
+            stacked: true, min: 0, max: 100,
+            grid: { color: '#eee' },
+            ticks: { callback: v => v + '%' }
+          }
+        }
+      }
+    });
+  } else {
+    const datasets = top.map((b, i) => {
+      const values = metricMarca === 'nominal'
+        ? mths.map(m => b.mths[m])
+        : mths.map((m, mi) => totals[mi] ? +((b.mths[m] / totals[mi] * 100).toFixed(2)) : 0);
+      return {
+        label: b.marca,
+        data: values,
+        borderColor: COLORS[i % COLORS.length],
+        backgroundColor: COLORS[i % COLORS.length] + '22',
+        borderWidth: 2.5,
+        pointRadius: 3,
+        tension: 0.3,
+        fill: false
+      };
+    });
+
+    chartEvol = new Chart(document.getElementById('chartEvolutivo'), {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } } },
+        scales: {
+          y: {
+            grid: { color: '#eee' },
+            ticks: { callback: v => metricMarca === 'nominal' ? v.toLocaleString('es-AR') : v + '%' }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+}
+
+
+
+// --- Chart evolutivo por cilindrada ---
+function updateChartEvolCil(filtered, mths, marketTotals) {
+  destroyChart(chartEvolCil);
+
+  // aggregate by cilindrada
+  const map = {};
+  filtered.forEach(r => {
+    const cil = r.cilindrada || 'Sin categoría';
+    if (!map[cil]) map[cil] = { cil, mths: {} };
+    mths.forEach(m => { map[cil].mths[m] = (map[cil].mths[m] || 0) + (r[m] || 0); });
+  });
+  const CIL_ORDER  = ['Hasta 110 cc','111-150 cc','151-250 cc','251-500 cc','Más de 500 cc','Sin categoría'];
+  const CIL_COLORS = ['#2196F3','#FF9800','#4CAF50','#F44336','#9C27B0','#9E9E9E'];
+  const groups = Object.values(map).sort((a, b) => {
+    const ai = CIL_ORDER.indexOf(a.cil), bi = CIL_ORDER.indexOf(b.cil);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+  const labels = mths.map(m => MONTH_LABELS[MONTHS.indexOf(m)]);
+  const totals = marketTotals || mths.map(m => groups.reduce((s, g) => s + g.mths[m], 0));
+
+  const titles = {
+    nominal: 'Evolutivo por cilindrada (unidades)',
+    pct:     'Evolutivo por cilindrada (participación %)',
+    stacked: 'Evolutivo por cilindrada — área 100%'
+  };
+  document.getElementById('chart-cil-title').textContent = titles[metricCil];
+
+  if (metricCil === 'stacked') {
+    const datasets = groups.map((g, i) => ({
+      label: g.cil,
+      data: mths.map((m, mi) => totals[mi] ? +((g.mths[m] / totals[mi] * 100).toFixed(2)) : 0),
+      backgroundColor: CIL_COLORS[i % CIL_COLORS.length],
+      borderColor: '#fff', borderWidth: 0.5,
+    }));
+    chartEvolCil = new Chart(document.getElementById('chartEvolCil'), {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10, padding: 6 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%` } }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, min: 0, max: 100, grid: { color: '#eee' }, ticks: { callback: v => v + '%' } }
+        }
+      }
+    });
+  } else {
+    const datasets = groups.map((g, i) => {
+      const values = metricCil === 'nominal'
+        ? mths.map(m => g.mths[m])
+        : mths.map((m, mi) => totals[mi] ? +((g.mths[m] / totals[mi] * 100).toFixed(2)) : 0);
+      return {
+        label: g.cil, data: values,
+        borderColor: CIL_COLORS[i % CIL_COLORS.length],
+        backgroundColor: CIL_COLORS[i % CIL_COLORS.length] + '22',
+        borderWidth: 2.5, pointRadius: 3, tension: 0.3, fill: false
+      };
+    });
+    chartEvolCil = new Chart(document.getElementById('chartEvolCil'), {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } } },
+        scales: {
+          y: { grid: { color: '#eee' }, ticks: { callback: v => metricCil === 'nominal' ? v.toLocaleString('es-AR') : v + '%' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+}
+
+// --- Table ---
+let tableSort = { col: 'total', dir: 1 };
+
+// --- Table ---
+function sortTableBy(col) {
+  if (tableSort.col === col) tableSort.dir *= -1;
+  else { tableSort.col = col; tableSort.dir = typeof col === 'string' && ['marca','modelo','cilindrada'].includes(col) ? 1 : -1; }
+  currentPage = 1;
+  update();
+}
+
+function updateTable(rows, mths) {
+  const head = document.getElementById('tabla-head');
+  const body = document.getElementById('tabla-body');
+  const grandTotals = mths.map(m => rows.reduce((s,r) => s + r.mths[m], 0));
+  const grandTotal  = rows.reduce((s,r) => s + r.total, 0);
+  const hasMarca = rows.some(r => r.modelo !== undefined);
+
+  // Sort — default tracks last active month
+  const lastM = mths[mths.length-1], prevM = mths[mths.length-2];
+  if (tableSort.col === 'total' || !mths.includes(tableSort.col) && !['marca','modelo','cilindrada','total','varmm'].includes(tableSort.col)) {
+    tableSort.col = lastM;
+  }
+  rows.sort((a, b) => {
+    let av, bv;
+    if (tableSort.col === 'marca')      { av = a.marca;      bv = b.marca;      return tableSort.dir * av.localeCompare(bv); }
+    if (tableSort.col === 'modelo')     { av = a.modelo||''; bv = b.modelo||''; return tableSort.dir * av.localeCompare(bv); }
+    if (tableSort.col === 'cilindrada') { av = a.cilindrada||''; bv = b.cilindrada||''; return tableSort.dir * av.localeCompare(bv); }
+    if (tableSort.col === 'total')      { av = a.total; bv = b.total; }
+    else if (tableSort.col === 'varmm') {
+      av = prevM ? (a.mths[lastM] - a.mths[prevM]) / (a.mths[prevM] || 1) : 0;
+      bv = prevM ? (b.mths[lastM] - b.mths[prevM]) / (b.mths[prevM] || 1) : 0;
+    } else { av = a.mths[tableSort.col] || 0; bv = b.mths[tableSort.col] || 0; }
+    return tableSort.dir * (bv - av);
+  });
+
+  // Header
+  const thStyle = 'cursor:pointer;user-select:none';
+  const arrow = (col) => tableSort.col === col ? (tableSort.dir > 0 ? ' ↑' : ' ↓') : '';
+  let hHTML = '<tr><th style="text-align:center;width:36px">#</th>';
+  hHTML += `<th style="${thStyle}" onclick="sortTableBy('marca')">Marca${arrow('marca')}</th>`;
+  if (hasMarca) {
+    hHTML += `<th style="${thStyle}" onclick="sortTableBy('modelo')">Modelo${arrow('modelo')}</th>`;
+    hHTML += `<th style="${thStyle}" onclick="sortTableBy('cilindrada')">Cilindrada${arrow('cilindrada')}</th>`;
+  }
+  mths.forEach(m => hHTML += `<th style="${thStyle}" onclick="sortTableBy('${m}')">${MONTH_LABELS[MONTHS.indexOf(m)]}${arrow(m)}</th>`);
+  hHTML += `<th style="${thStyle}" onclick="sortTableBy('total')">Total${arrow('total')}</th>`;
+  hHTML += '<th>Part. %</th>';
+  if (mths.length > 1) hHTML += `<th style="${thStyle}" onclick="sortTableBy('varmm')">Var último m/m${arrow('varmm')}</th>`;
+  hHTML += '</tr>';
+  head.innerHTML = hHTML;
+
+  // Pagination
+  const total = rows.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (currentPage > pages) currentPage = 1;
+  const slice = rows.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+
+  let bHTML = '';
+  slice.forEach((r, idx) => {
+    const varMM = mths.length > 1
+      ? (r.mths[lastM] - r.mths[prevM]) / (r.mths[prevM] || 1)
+      : null;
+    const share = grandTotal ? r.total / grandTotal : 0;
+    const barW  = grandTotal ? Math.round(r.total / (rows[0]?.total || 1) * 100) : 0;
+
+    const rowNum = (currentPage-1)*PAGE_SIZE + idx + 1;
+    bHTML += `<tr>
+      <td>${rowNum}</td>
+      <td>${r.marca}</td>`;
+    if (hasMarca) bHTML += `<td>${r.modelo}</td><td style="font-size:11px;color:#555;font-weight:400">${r.cilindrada}</td>`;
+    mths.forEach(m => {
+      const v = r.mths[m];
+      bHTML += `<td>${v ? v.toLocaleString('es-AR') : '<span style="color:#ccc">—</span>'}</td>`;
+    });
+    bHTML += `<td><strong>${r.total.toLocaleString('es-AR')}</strong></td>
+      <td>
+        <div class="bar-wrap">
+          <span>${(share*100).toFixed(1)}%</span>
+          <div class="bar-bg"><div class="bar-fg" style="width:${barW}%"></div></div>
+        </div>
+      </td>`;
+    if (mths.length > 1 && varMM !== null) {
+      const sign = varMM >= 0 ? '+' : '−';
+      bHTML += `<td class="${varMM >= 0 ? 'pos' : 'neg'}">${sign}${Math.abs(varMM*100).toFixed(1)}%</td>`;
+    }
+    bHTML += `</tr>`;
+  });
+
+  // Total row
+  bHTML += `<tr class="total-row"><td style="text-align:center">—</td><td colspan="${hasMarca ? 3 : 1}">TOTAL</td>`;
+  mths.forEach((m, mi) => bHTML += `<td>${grandTotals[mi].toLocaleString('es-AR')}</td>`);
+  bHTML += `<td>${grandTotal.toLocaleString('es-AR')}</td><td>100%</td>`;
+  if (mths.length > 1) bHTML += '<td>—</td>';
+  bHTML += `</tr>`;
+
+  body.innerHTML = bHTML;
+
+  document.getElementById('pag-info').textContent = `${(currentPage-1)*PAGE_SIZE+1}–${Math.min(currentPage*PAGE_SIZE, total)} de ${total}`;
+  document.getElementById('pag-prev').disabled = currentPage <= 1;
+  document.getElementById('pag-next').disabled = currentPage >= pages;
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  update();
+}
+
+function setMetricMarca(m) {
+  metricMarca = m;
+  document.getElementById('btn-marca-nominal').classList.toggle('active', m === 'nominal');
+  document.getElementById('btn-marca-pct').classList.toggle('active', m === 'pct');
+  document.getElementById('btn-marca-stacked').classList.toggle('active', m === 'stacked');
+  update();
+}
+
+function setMetricCil(m) {
+  metricCil = m;
+  document.getElementById('btn-cil-nominal').classList.toggle('active', m === 'nominal');
+  document.getElementById('btn-cil-pct').classList.toggle('active', m === 'pct');
+  document.getElementById('btn-cil-stacked').classList.toggle('active', m === 'stacked');
+  update();
+}
+
+
+// --- Main update ---
+function update() {
+  currentPage = 1;
+  const mths     = getActiveMths();
+  const filtered  = getFiltered();
+  const brands    = aggregateByBrand(filtered, mths);
+  const rows      = aggregateByBrandModel(filtered, mths);
+  // always use full market totals for % calculation
+  const allBrands = aggregateByBrand(RAW_DATA, mths);
+  const marketTotals = getTotalsPerMonth(allBrands, mths);
+
+  updateKPIs(brands, mths);
+  updateChartEvol(brands, mths, marketTotals);
+  updateChartEvolCil(filtered, mths, marketTotals);
+  updateTable(rows, mths);
+}
+
+// --- Sticky offsets ---
+function setStickyTops() {
+  const header  = document.querySelector('header');
+  const nav     = document.querySelector('.nav-bar');
+  const filters = document.querySelector('.filters-bar');
+  const hH = header.offsetHeight;
+  const nH = nav.offsetHeight;
+  nav.style.top     = hH + 'px';
+  filters.style.top = (hH + nH) + 'px';
+}
+window.addEventListener('load',   setStickyTops);
+window.addEventListener('resize', setStickyTops);
+
+// --- Boot ---
+document.getElementById('last-update').textContent = typeof LAST_UPDATE !== 'undefined' ? LAST_UPDATE : '—';
+
+initFilters();
+update();
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ventas Pacheco</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
+header {
+  background: linear-gradient(135deg, #1F3864 0%, #2E5FA3 100%);
+  color: #fff; padding: 8px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  position: sticky; top: 0; z-index: 100;
+}
+header h1 { font-size: 15px; font-weight: 700; }
+header p  { font-size: 11px; opacity: .8; margin-top: 1px; }
+.badge { background: rgba(255,255,255,.15); border-radius: 20px; padding: 5px 14px; font-size: 11px; }
+.nav-bar { background:#e4e9f2; border-bottom:2px solid #c8d0e0; padding:0 28px; display:flex; gap:0; box-shadow:0 1px 4px rgba(0,0,0,.08); position:sticky; top:0; z-index:99; }
+.nav-item { display:inline-flex; align-items:center; padding:6px 16px; font-size:12px; font-weight:600; color:#555; text-decoration:none; white-space:nowrap; border-bottom:3px solid transparent; transition:color .15s,border-color .15s; margin-bottom:-2px; }
+.nav-item:hover { color:#2E5FA3; border-bottom-color:#9DC3E6; }
+.nav-item.active { color:#1F3864; border-bottom-color:#2E5FA3; }
+.nav-item.disabled { color:#bbb; cursor:default; pointer-events:none; }
+.main { max-width: 1300px; margin: 0 auto; padding: 20px; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi { background: #fff; border-radius: 10px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); border-left: 4px solid #2E5FA3; }
+.kpi.kpi-green { border-left-color: #27ae60; }
+.kpi.kpi-gold  { border-left-color: #f39c12; }
+.kpi.kpi-red   { border-left-color: #e74c3c; }
+.kpi label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #999; }
+.kpi .val { font-size: 26px; font-weight: 700; color: #1F3864; margin: 5px 0 2px; }
+.kpi .sub { font-size: 11px; color: #bbb; }
+.card { background: #fff; border-radius: 10px; padding: 18px 22px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 20px; }
+.card h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1F3864; margin-bottom: 14px; }
+.chart-wrap { position: relative; width: 100%; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+thead th { background: #1F3864; color: #fff; padding: 9px 10px; text-align: right; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+thead th:first-child { text-align: left; }
+tbody tr:nth-child(even) { background: #f5f7fc; }
+tbody tr:hover { background: #e8edf8; }
+tbody td { padding: 7px 10px; text-align: right; border-bottom: 1px solid #eee; white-space: nowrap; }
+tbody td:first-child { text-align: left; font-weight: 600; }
+.total-row td { background: #d9e1f2 !important; font-weight: 700; border-top: 2px solid #2E5FA3; }
+.tbl-wrap { overflow-x: auto; }
+@media (max-width:900px) { .kpis { grid-template-columns: repeat(2,1fr); } .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Ventas Pacheco</h1>
+    <p id="header-sub">Ciclofox Pacheco — Patentamientos propios por modelo</p>
+  </div>
+  <div class="badge" id="badge-update">—</div>
+</header>
+
+<!-- NAV -->
+<nav class="nav-bar">
+  <a href="index.html" class="nav-item">🔍 Cadecom — Variaciones del mes</a>
+  <a href="evolutivo.html" class="nav-item">📊 Cadecom — Evolutivo</a>
+  <a href="pacheco.html"  class="nav-item active" style="display:none">🏍 Ventas Pacheco</a>
+</nav>
+
+<div class="main">
+  <div class="kpis">
+    <div class="kpi"><label>Total período</label><div class="val" id="kpi-total">—</div><div class="sub">unidades vendidas</div></div>
+    <div class="kpi kpi-gold"><label>Promedio mensual</label><div class="val" id="kpi-avg">—</div><div class="sub">unidades / mes</div></div>
+    <div class="kpi kpi-green"><label>Mejor mes</label><div class="val" id="kpi-best">—</div><div class="sub" id="kpi-best-sub">—</div></div>
+    <div class="kpi kpi-red"><label>Share Yamaha</label><div class="val" id="kpi-yamaha">—</div><div class="sub" id="kpi-yamaha-sub">—</div></div>
+  </div>
+  <div class="card">
+    <h2>Evolutivo mensual — Yamaha vs Otras marcas</h2>
+    <div class="chart-wrap" style="height:300px"><canvas id="chartEvol"></canvas></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>🏍 Modelos Yamaha</h2>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th style="text-align:left">Modelo</th><th>Total</th><th>Mejor mes</th><th>Últ. mes</th>
+      </tr></thead><tbody id="tbody-yamaha"></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>🏍 Otras marcas</h2>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th style="text-align:left">Modelo</th><th>Total</th><th>Mejor mes</th><th>Últ. mes</th>
+      </tr></thead><tbody id="tbody-otras"></tbody></table></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Detalle por mes</h2>
+    <div class="tbl-wrap"><table>
+      <thead id="thead-mes"></thead>
+      <tbody id="tbody-mes"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<script>
+// ─── DATOS ────────────────────────────────────────────────────────────────────
+// Actualización: 29/05/2026
+// Para agregar un mes nuevo: agregar una entrada al objeto DATA con clave 'MM-YYYY'
+// y los modelos normalizados como keys.
+
+const LAST_UPDATE_PACHECO = '29/05/2026';
+
+const DATA = {
+  '04-2025': {'NM-X Connected':1,'FZ-S FI':1,'RAY ZR 125 FI':1,'XTZ250 ABS':1,'MT-03':1},
+  '05-2025': {'RAIDER 125':3,'RAY ZR 125 FI':2,'XTZ250 ABS':2,'MT-03':2,'FASCINO 125 FI':1,'YBR125':1,'XTZ125':1,'FZ-X':1,'FZ-S FI':1},
+  '06-2025': {'MT-03':3,'XTZ250 ABS':2,'RAIDER 125':1,'HUNK 150':1,'XTZ125':1,'SLALOM 110':1,'NM-X Connected':1,'XPULSE 200':1,'RAY ZR 125 FI':1},
+  '07-2025': {'MT-03':7,'HUNK 150':3,'XTZ125':2,'XTZ250 ABS':2,'NM-X Connected':3,'FZ-X':1,'YBR125':1,'DURBAN 150':1,'SLALOM 110':1,'FZ-S FI':1},
+  '08-2025': {'FZ-X':4,'FZ-S FI':3,'HUNK 150':3,'NM-X Connected':3,'FASCINO 125 FI':1,'TVS NEO':1,'FZ25 ABS':1,'KIDEN 250':1,'QUIRION 150':1,'SLALOM 110':1,'XTZ250 ABS':1},
+  '09-2025': {'NM-X Connected':4,'FZ-S FI':4,'MT-03':3,'XTZ125':3,'XTZ250 ABS':2,'NOMAD 150':2,'QU 110':1,'XPULSE 200':1,'RAY ZR 125 FI':1,'HUNK 150':1,'RAIDER 125':1,'SLALOM 110':1,'YBR125':1},
+  '10-2025': {'FZ-S FI':5,'XTZ125':3,'NOMAD 150':3,'QUIRION 150':3,'MT-03':3,'FZ25 ABS':2,'QU 110':3,'XTZ250 ABS':1,'NM-X Connected':1,'RAIDER 125':1,'FZ-X':1,'TT-R 230':1,'XMAX 300':1},
+  '11-2025': {'NOMAD 150':5,'FZ-S FI':3,'FZ-X':2,'QU 110':2,'HUNK 150':1,'NM-X Connected':1,'FZ25 ABS':1,'MT-03':1},
+  '12-2025': {'FZ-S FI':5,'NOMAD 150':5,'NM-X Connected':4,'RAIDER 125':2,'XTZ250 ABS':2,'RTR 200':1,'XTZ125':1,'FZ-X':1,'HUNK 150':1,'MT-03':1,'QUIRION 150':1,'RAY ZR 125 FI':1,'YBR125':1,'QU 110':1},
+  '01-2026': {'FZ-S FI':3,'NOMAD 150':2,'XTZ125':2,'MT-03':1,'NM-X Connected':1,'QUIRION 150':1,'XTZ250 ABS':1},
+  '02-2026': {'QU 110':5,'FZ-S FI':3,'NM-X Connected':3,'HUNK 150':2,'NOMAD 150':2,'YBR125':1,'QUIRION 150':1,'XTZ125':1,'NTORQ 125':1,'XPULSE 200':1,'FZ-X':1},
+  '03-2026': {'FZ-S FI':4,'NOMAD 150':4,'QU 110':5,'XTZ125':2,'NM-X Connected':2,'MT-07':1,'RAY ZR 125 FI':1,'FASCINO 125 FI':1,'HUNK 150':1,'QUIRION 150':1,'XTZ250 ABS':1},
+  '04-2026': {'NOMAD 150':3,'MT-03':3,'XTZ250 ABS':2,'FZ-S FI':2,'QU 110':2,'QUIRION 150':1,'FASCINO 125 FI':1,'XPULSE 200':1,'SALTUS 200':1,'XMAX 300':1},
+  '05-2026': {'FZ-S FI':6,'XTZ250 ABS':3,'HUNK 150':2,'RAY ZR 125 FI':2,'FZ-X':1,'FASCINO 125 FI':1,'S2':1,'KD 250':1},
+};
+
+const YAMAHA_MODELS = new Set([
+  'FZ-S FI','FZ-X','FZ25 ABS','MT-03','MT-07',
+  'XTZ125','XTZ250 ABS','NM-X Connected','YBR125',
+  'FASCINO 125 FI','RAY ZR 125 FI','XMAX 300'
+]);
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const MN = {'01':'Ene','02':'Feb','03':'Mar','04':'Abr','05':'May','06':'Jun','07':'Jul','08':'Ago','09':'Sep','10':'Oct','11':'Nov','12':'Dic'};
+function fmtM(m) { const [mm,yy] = m.split('-'); return MN[mm]+' '+yy.slice(2); }
+
+const MONTHS = Object.keys(DATA).sort((a,b)=>{
+  const [ma,ya]=a.split('-'),[mb,yb]=b.split('-');
+  return (ya-yb)||(ma-mb);
+});
+const lastM = MONTHS[MONTHS.length-1];
+
+function mTotal(m)  { return Object.values(DATA[m]).reduce((s,v)=>s+v,0); }
+function mYamaha(m) { return Object.entries(DATA[m]).filter(([k])=>YAMAHA_MODELS.has(k)).reduce((s,[,v])=>s+v,0); }
+
+// ─── KPIs ────────────────────────────────────────────────────────────────────
+const totals      = MONTHS.map(mTotal);
+const grandTotal  = totals.reduce((s,v)=>s+v,0);
+const avg         = Math.round(grandTotal/MONTHS.length);
+const bestIdx     = totals.indexOf(Math.max(...totals));
+const yamahaTotal = MONTHS.reduce((s,m)=>s+mYamaha(m),0);
+const yamahaPct   = (yamahaTotal/grandTotal*100).toFixed(1);
+
+document.getElementById('kpi-total').textContent   = grandTotal.toLocaleString('es-AR');
+document.getElementById('kpi-avg').textContent     = avg.toLocaleString('es-AR');
+document.getElementById('kpi-best').textContent    = Math.max(...totals).toLocaleString('es-AR');
+document.getElementById('kpi-best-sub').textContent= fmtM(MONTHS[bestIdx]);
+document.getElementById('kpi-yamaha').textContent  = yamahaPct+'%';
+document.getElementById('kpi-yamaha-sub').textContent = yamahaTotal+' unidades Yamaha';
+document.getElementById('header-sub').textContent  = fmtM(MONTHS[0])+' – '+fmtM(lastM)+'  |  '+MONTHS.length+' meses';
+document.getElementById('badge-update').textContent= 'Actualizado: '+LAST_UPDATE_PACHECO;
+
+// ─── CHART ───────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('chartEvol'), {
+  type: 'bar',
+  data: {
+    labels: MONTHS.map(fmtM),
+    datasets: [
+      { label:'Yamaha',       data: MONTHS.map(mYamaha),                            backgroundColor:'#2E5FA3', borderRadius:3 },
+      { label:'Otras marcas', data: MONTHS.map(m=>mTotal(m)-mYamaha(m)),            backgroundColor:'#9DC3E6', borderRadius:3 },
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ font:{size:11}, boxWidth:12, padding:10 } },
+      tooltip:{ callbacks:{ label: ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}` } }
+    },
+    scales:{
+      x:{ stacked:true, grid:{display:false} },
+      y:{ stacked:true, grid:{color:'#eee'}, ticks:{stepSize:5} }
+    }
+  }
+});
+
+// ─── TABLAS MODELOS ───────────────────────────────────────────────────────────
+const allModels = {};
+MONTHS.forEach(m=>Object.entries(DATA[m]).forEach(([k,v])=>{ allModels[k]=(allModels[k]||0)+v; }));
+
+function buildModelTable(models, tbodyId) {
+  const rows = Object.entries(models)
+    .map(([modelo,total])=>{
+      const byM  = MONTHS.map(m=>DATA[m][modelo]||0);
+      const bestM= MONTHS[byM.indexOf(Math.max(...byM))];
+      return { modelo, total, bestM, last: DATA[lastM][modelo]||0 };
+    })
+    .sort((a,b)=>b.total-a.total);
+  const sumTotal = rows.reduce((s,r)=>s+r.total,0);
+  const sumLast  = rows.reduce((s,r)=>s+r.last,0);
+  document.getElementById(tbodyId).innerHTML =
+    rows.map(r=>`<tr>
+      <td>${r.modelo}</td><td>${r.total}</td>
+      <td>${fmtM(r.bestM)}</td><td>${r.last||'—'}</td>
+    </tr>`).join('')+
+    `<tr class="total-row"><td>TOTAL</td><td>${sumTotal}</td><td></td><td>${sumLast||'—'}</td></tr>`;
+}
+
+const yamahaModels={}, otrasModels={};
+Object.entries(allModels).forEach(([k,v])=>{ (YAMAHA_MODELS.has(k)?yamahaModels:otrasModels)[k]=v; });
+buildModelTable(yamahaModels,'tbody-yamaha');
+buildModelTable(otrasModels, 'tbody-otras');
+
+// ─── TABLA POR MES ────────────────────────────────────────────────────────────
+const topModels = Object.entries(allModels).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([k])=>k);
+
+document.getElementById('thead-mes').innerHTML = `<tr>
+  <th style="text-align:left">Mes</th><th>Total</th><th>Yamaha</th><th>Share</th>
+  ${topModels.map(m=>`<th title="${m}">${m.length>10?m.slice(0,9)+'…':m}</th>`).join('')}
+</tr>`;
+
+document.getElementById('tbody-mes').innerHTML =
+  MONTHS.map(m=>{
+    const tot=mTotal(m), yam=mYamaha(m);
+    return `<tr>
+      <td>${fmtM(m)}</td>
+      <td style="font-weight:700">${tot}</td>
+      <td style="color:#2E5FA3;font-weight:600">${yam}</td>
+      <td>${tot?(yam/tot*100).toFixed(0)+'%':'—'}</td>
+      ${topModels.map(mod=>`<td>${DATA[m][mod]||'—'}</td>`).join('')}
+    </tr>`;
+  }).join('')+
+  `<tr class="total-row">
+    <td>TOTAL</td><td>${grandTotal}</td>
+    <td style="color:#2E5FA3">${yamahaTotal}</td><td>${yamahaPct}%</td>
+    ${topModels.map(mod=>`<td>${MONTHS.reduce((s,m)=>s+(DATA[m][mod]||0),0)||'—'}</td>`).join('')}
+  </tr>`;
+
+// Sticky offsets
+function setStickyTops() {
+  const header = document.querySelector('header');
+  const nav    = document.querySelector('.nav-bar');
+  nav.style.top = header.offsetHeight + 'px';
+}
+window.addEventListener('load',   setStickyTops);
+window.addEventListener('resize', setStickyTops);
+</script>
+</body>
+</html>
