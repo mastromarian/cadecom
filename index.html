@@ -213,6 +213,18 @@ thead th { position: relative; user-select: none; }
     </select>
   </div>
   <div class="filter-group" style="min-width:auto">
+    <label>Provincia</label>
+    <select id="f-provincia" style="width:130px" onchange="onProvinceChange()">
+      <option value="">Todas</option>
+    </select>
+  </div>
+  <div class="filter-group" style="min-width:auto">
+    <label>Localidad</label>
+    <select id="f-localidad" style="width:130px" onchange="updateInsights()">
+      <option value="">Todas</option>
+    </select>
+  </div>
+  <div class="filter-group" style="min-width:auto">
     <label>Mín. unid.</label>
     <input type="number" id="ins-min" value="50" min="1" style="width:56px;border:1px solid #ccd5e8;border-radius:6px;padding:5px 6px;font-size:12px;text-align:center;background:#f7f9fd" onchange="updateInsights()">
   </div>
@@ -314,12 +326,16 @@ document.addEventListener('click', e => {
 });
 
 function getFiltered() {
-  const cil    = document.getElementById('f-cil').value;
-  const modelo = document.getElementById('f-modelo').value;
+  const cil       = document.getElementById('f-cil').value;
+  const modelo    = document.getElementById('f-modelo').value;
+  const provincia = document.getElementById('f-provincia').value;
+  const localidad = document.getElementById('f-localidad').value;
   return RAW_DATA.filter(r =>
     (msState.marca.size === 0 || msState.marca.has(r.marca)) &&
-    (!cil    || r.cilindrada === cil) &&
-    (!modelo || r.modelo === modelo)
+    (!cil       || r.cilindrada === cil) &&
+    (!modelo    || r.modelo === modelo) &&
+    (!provincia || (r.provincias && r.provincias.includes(provincia))) &&
+    (!localidad || (r.localidades && r.localidades.includes(localidad)))
   );
 }
 
@@ -330,6 +346,12 @@ function initFilters() {
   cats.push('Sin categoría');
   const selCil = document.getElementById('f-cil');
   selCil.innerHTML = '<option value="">Todas</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  
+  // Provincias
+  const allProvs = [...new Set(RAW_DATA.flatMap(r => r.provincias || []))].sort();
+  const selProv = document.getElementById('f-provincia');
+  selProv.innerHTML = '<option value="">Todas</option>' + allProvs.map(p => `<option value="${p}">${p}</option>`).join('');
+  
   populateModelos();
 }
 
@@ -354,7 +376,10 @@ function resetFilters() {
   updateMsTrigger('marca');
   document.getElementById('f-cil').value = '';
   document.getElementById('f-modelo').value = '';
+  document.getElementById('f-provincia').value = '';
+  document.getElementById('f-localidad').value = '';
   populateModelos();
+  populateLocalidades();
   updateInsights();
 }
 
@@ -702,6 +727,22 @@ function enableColumnResize(table) {
       e.preventDefault();
     });
   });
+}
+
+function populateLocalidades() {
+  const provincia = document.getElementById('f-provincia').value;
+  const locs = province ? [...new Set(RAW_DATA.filter(r =>
+    r.provincias && (province ? r.provincias.includes(province) : true)
+  ).flatMap(r => r.localidades || []))].sort() : [...new Set(RAW_DATA.flatMap(r => r.localidades || []))].sort();
+  const selLoc = document.getElementById('f-localidad');
+  const prev = selLoc.value;
+  selLoc.innerHTML = '<option value="">Todas</option>' + locs.map(l => `<option value="${l}">${l}</option>`).join('');
+  if (locs.includes(prev)) selLoc.value = prev;
+}
+
+function onProvinceChange() {
+  populateLocalidades();
+  updateInsights();
 }
 // --- Boot ---
 document.getElementById('last-update').textContent = typeof LAST_UPDATE !== 'undefined' ? LAST_UPDATE : '—';
