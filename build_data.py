@@ -19,6 +19,40 @@ for cf in cil_files:
             cil_map[modelo] = cil  # last file wins (most recent = most accurate)
 print(f'Cilindrada map: {len(cil_map)} modelos')
 
+# Build localidad map: (marca, modelo) → set of localidades
+LOC_FOLDER = r'C:\Users\Mariano Mastronardi\Desktop\Pacheco\Cadecom\Fuentes\Localidad - Modelo'
+loc_map = {}  # (marca, modelo) → set de localidades
+loc_files = sorted(glob.glob(LOC_FOLDER + r'\*.xlsx'))
+for lf in loc_files:
+    try:
+        df = pd.read_excel(lf, sheet_name='Consulta', header=0)
+        for _, row in df.iterrows():
+            modelo = str(row.get('Modelo', '')).strip()
+            localidad = str(row.get('Localidad', '')).strip()
+            if modelo and modelo not in ('Modelo', 'nan') and localidad and localidad != 'nan':
+                # Necesito extraer marca del modelo si está ahí, o usar genérico
+                # Por ahora solo voy a acumular localidades por modelo
+                if modelo not in loc_map:
+                    loc_map[modelo] = set()
+                loc_map[modelo].add(localidad)
+    except:
+        pass
+print(f'Localidad map: {len(loc_map)} modelos con localidades')
+
+# Build provincia map: localidad → provincia
+ZONA_FILE = r'C:\Users\Mariano Mastronardi\Desktop\Pacheco\Cadecom\Fuentes\Zona - Provincia - Localidad\consulta_periodo_2026-01-01_2026-12-31_20260531_234456.xlsx'
+prov_map = {}  # localidad → provincia
+try:
+    df_zona = pd.read_excel(ZONA_FILE, sheet_name='Consulta', header=0)
+    for _, row in df_zona.iterrows():
+        localidad = str(row.get('Localidad', '')).strip()
+        provincia = str(row.get('Provincia', '')).strip()
+        if localidad and localidad != 'nan' and provincia and provincia != 'nan':
+            prov_map[localidad] = provincia
+except:
+    pass
+print(f'Provincia map: {len(prov_map)} localidades')
+
 # Also merge the cilindrada file that lives in Marca-Modelo folder
 CIL_FILE_LEGACY = os.path.join(FOLDER, 'consulta_periodo_2026-01-01_2026-05-31_20260529_233621.xlsx')
 if os.path.exists(CIL_FILE_LEGACY):
@@ -88,7 +122,15 @@ for f in selected:
 records = []
 for (marca, modelo), month_data in combined.items():
     cil = cil_map.get(modelo, 'Sin categoría')
+    locs = list(loc_map.get(modelo, []))
+    provs = sorted(set(prov_map.get(loc, '') for loc in locs if prov_map.get(loc)))
+
     rec = {'marca': marca, 'modelo': modelo, 'cilindrada': cil}
+    if locs:
+        rec['localidades'] = locs
+    if provs:
+        rec['provincias'] = provs
+
     total = 0
     for m in all_months:
         v = month_data.get(m, 0)
