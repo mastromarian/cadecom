@@ -92,6 +92,13 @@ header p  { font-size: 11px; opacity: .8; margin-top: 1px; }
 .ms-item span { text-align: left; }
 .ms-count { display: inline-block; background: #2E5FA3; color: #fff; border-radius: 10px; font-size: 10px; padding: 1px 6px; margin-left: 4px; }
 
+/* Filtros deshabilitados */
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f0f0f0 !important;
+}
+
 /* MAIN */
 .main { max-width: 100%; margin: 0 auto; padding: 16px 20px; }
 
@@ -179,37 +186,23 @@ thead th { position: relative; user-select: none; }
     </div>
   </div>
   <div class="filter-group" style="min-width:auto">
-    <label>Top marcas</label>
-    <select id="ins-topn-brands" style="width:72px" onchange="updateInsights()">
-      <option value="5">Top 5</option>
-      <option value="10" selected>Top 10</option>
-      <option value="15">Top 15</option>
-      <option value="20">Top 20</option>
-      <option value="9999">Todas</option>
-    </select>
-  </div>
-  <div class="filter-group" style="min-width:auto">
-    <label>Top N modelos</label>
-    <select id="ins-topn" style="width:72px" onchange="updateInsights()">
-      <option value="5">Top 5</option>
-      <option value="10" selected>Top 10</option>
-      <option value="15">Top 15</option>
-      <option value="20">Top 20</option>
-      <option value="50">Top 50</option>
-      <option value="100">Top 100</option>
-      <option value="9999">Todos</option>
-    </select>
+    <label>Modelo</label>
+    <div class="ms-wrap" id="ms-modelo-wrap">
+      <div class="ms-trigger" id="ms-modelo-trigger" onclick="toggleMs('modelo',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-modelo-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar modelo…" oninput="filterMsList('modelo',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('modelo')">Seleccionar todo</button>
+          <button onclick="clearMs('modelo')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-modelo-list"></div>
+      </div>
+    </div>
   </div>
   <div class="filter-group" style="min-width:auto">
     <label>Cilindrada</label>
     <select id="f-cil" style="width:110px" onchange="onSelectCil()">
       <option value="">Todas</option>
-    </select>
-  </div>
-  <div class="filter-group" style="min-width:auto">
-    <label>Modelo</label>
-    <select id="f-modelo" style="width:130px" onchange="updateInsights()">
-      <option value="">Todos</option>
     </select>
   </div>
   <div class="filter-group" style="min-width:auto">
@@ -220,21 +213,48 @@ thead th { position: relative; user-select: none; }
   </div>
   <div class="filter-group" style="min-width:auto">
     <label>Provincia</label>
-    <select id="f-provincia" style="width:130px" onchange="onProvinceChange()">
+    <select id="f-provincia" style="width:130px" onchange="onProvinceChange()" disabled>
       <option value="">Todas</option>
     </select>
   </div>
   <div class="filter-group" style="min-width:auto">
     <label>Localidad</label>
-    <select id="f-localidad" style="width:130px" onchange="updateInsights()">
+    <select id="f-localidad" style="width:130px" onchange="updateInsights()" disabled>
       <option value="">Todas</option>
     </select>
   </div>
-  <div class="filter-group" style="min-width:auto">
-    <label>Mín. unid.</label>
+  <button class="btn-reset" onclick="resetFilters()">Limpiar filtros</button>
+</div>
+
+<!-- SECCIÓN VISUALIZACIÓN -->
+<div style="display:flex; align-items:center; gap:20px; padding:12px 15px; background:#f0f4ff; border-bottom:1px solid #d0daf5; font-size:13px">
+  <span style="font-weight:600; color:#667">VISUALIZACIÓN</span>
+  <div class="filter-group" style="min-width:auto; margin:0">
+    <label>Top marcas</label>
+    <select id="ins-topn-brands" style="width:72px" onchange="updateInsights()">
+      <option value="5">Top 5</option>
+      <option value="10" selected>Top 10</option>
+      <option value="15">Top 15</option>
+      <option value="20">Top 20</option>
+      <option value="9999">Todas</option>
+    </select>
+  </div>
+  <div class="filter-group" style="min-width:auto; margin:0">
+    <label>Top modelos</label>
+    <select id="ins-topn" style="width:72px" onchange="updateInsights()">
+      <option value="5">Top 5</option>
+      <option value="10" selected>Top 10</option>
+      <option value="15">Top 15</option>
+      <option value="20">Top 20</option>
+      <option value="50">Top 50</option>
+      <option value="100">Top 100</option>
+      <option value="9999">Todos</option>
+    </select>
+  </div>
+  <div class="filter-group" style="min-width:auto; margin:0">
+    <label>Mín. unidades</label>
     <input type="number" id="ins-min" value="50" min="1" style="width:56px;border:1px solid #ccd5e8;border-radius:6px;padding:5px 6px;font-size:12px;text-align:center;background:#f7f9fd" onchange="updateInsights()">
   </div>
-  <button class="btn-reset" onclick="resetFilters()">Limpiar filtros</button>
 </div>
 
 <div class="main">
@@ -244,7 +264,7 @@ thead th { position: relative; user-select: none; }
 
     <!-- Insights automáticos -->
     <div id="insights-title" style="font-size:13px;font-weight:700;color:#1F3864;margin-bottom:10px"></div>
-    <div id="auto-insights" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8edf8"></div>
+    <div id="auto-insights" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8edf8"></div>
 
     <div style="display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr) minmax(0,1fr);gap:10px 16px;align-items:start;margin-bottom:20px;overflow:hidden">
 
@@ -269,19 +289,35 @@ thead th { position: relative; user-select: none; }
 </div>
 
 <script>
-const MONTHS = ["01-2015","02-2015","03-2015","04-2015","05-2015","06-2015","07-2015","08-2015","09-2015","10-2015","11-2015","12-2015","01-2016","02-2016","03-2016","04-2016","05-2016","06-2016","07-2016","08-2016","09-2016","10-2016","11-2016","12-2016","01-2017","02-2017","03-2017","04-2017","05-2017","06-2017","07-2017","08-2017","09-2017","10-2017","11-2017","12-2017","01-2018","02-2018","03-2018","04-2018","05-2018","06-2018","07-2018","08-2018","09-2018","10-2018","11-2018","12-2018","01-2019","02-2019","03-2019","04-2019","05-2019","06-2019","07-2019","08-2019","09-2019","10-2019","11-2019","12-2019","01-2020","02-2020","03-2020","04-2020","05-2020","06-2020","07-2020","08-2020","09-2020","10-2020","11-2020","12-2020","01-2022","02-2022","03-2022","04-2022","05-2022","06-2022","07-2022","08-2022","09-2022","10-2022","11-2022","12-2022","01-2023","02-2023","03-2023","04-2023","05-2023","06-2023","07-2023","08-2023","09-2023","10-2023","11-2023","12-2023","01-2024","02-2024","03-2024","04-2024","05-2024","06-2024","07-2024","08-2024","09-2024","10-2024","11-2024","12-2024","01-2025","02-2025","03-2025","04-2025","05-2025","06-2025","07-2025","08-2025","09-2025","10-2025","11-2025","12-2025","01-2026","02-2026","03-2026","04-2026","05-2026"];
+// MONTHS generado dinámicamente desde los datos reales (evita meses vacíos y
+// asegura incluir todos los que tienen ventas)
+const MONTHS = (() => {
+  const set = new Set();
+  RAW_DATA.forEach(r => {
+    for (const k in r) { if (/^\d{2}-\d{4}$/.test(k)) set.add(k); }
+  });
+  return [...set].sort((a,b) => {
+    const [ma,ya] = a.split('-'), [mb,yb] = b.split('-');
+    return ya === yb ? (+ma - +mb) : (+ya - +yb);
+  });
+})();
 const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '.' + mm; });
 
 // --- Multiselect ---
-const msState = { marca: new Set() };
-const msAllItems = { marca: [] };
+const msState = { marca: new Set(), modelo: new Set() };
+const msAllItems = { marca: [], modelo: [] };
 
 function buildMsList(key, items) {
   msAllItems[key] = items;
   const list = document.getElementById(`ms-${key}-list`);
-  list.innerHTML = items.map(v =>
+  if (!list) {
+    console.error(`[buildMsList] ERROR: ms-${key}-list element not found!`);
+    return;
+  }
+  const html = items.map(v =>
     `<label class="ms-item"><input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span></label>`
   ).join('');
+  list.innerHTML = html;
 }
 function filterMsList(key, q) {
   const items = msAllItems[key].filter(v => v.toLowerCase().includes(q.toLowerCase()));
@@ -298,7 +334,10 @@ function updateMsTrigger(key) {
   const n = msState[key].size;
   if (n === 0) trigger.innerHTML = 'Todas';
   else if (n === 1) trigger.innerHTML = [...msState[key]][0];
-  else trigger.innerHTML = `${n} marcas <span class="ms-count">${n}</span>`;
+  else {
+    const label = key === 'marca' ? 'marcas' : 'modelos';
+    trigger.innerHTML = `${n} ${label} <span class="ms-count">${n}</span>`;
+  }
 }
 function selectAllMs(key) {
   document.querySelectorAll(`#ms-${key}-list input`).forEach(c => { c.checked = true; msState[key].add(c.value); });
@@ -333,17 +372,28 @@ document.addEventListener('click', e => {
 
 function getFiltered() {
   const cil       = document.getElementById('f-cil').value;
-  const modelo    = document.getElementById('f-modelo').value;
   const zona       = document.getElementById('f-zona').value;
   const provincia = document.getElementById('f-provincia').value;
   const localidad = document.getElementById('f-localidad').value;
+
   return RAW_DATA.filter(r =>
     (msState.marca.size === 0 || msState.marca.has(r.marca)) &&
+    (msState.modelo.size === 0 || msState.modelo.has(r.modelo)) &&
     (!cil       || r.cilindrada === cil) &&
-    (!modelo    || r.modelo === modelo) &&
-    (!zona      || (r.zonas && r.zonas.includes(zona))) &&
-    (!provincia || (r.provincias && r.provincias.includes(provincia))) &&
-    (!localidad || (r.localidades && r.localidades.includes(localidad)))
+    (!zona      || r.zona === zona) &&
+    (!provincia || r.provincia === provincia) &&
+    (!localidad || r.localidad === localidad)
+  );
+}
+
+// Filtro GLOBAL: solo marca/cilindrada/modelo, SIN filtros geográficos
+function getFilteredGlobal() {
+  const cil    = document.getElementById('f-cil').value;
+
+  return RAW_DATA.filter(r =>
+    (msState.marca.size === 0 || msState.marca.has(r.marca)) &&
+    (msState.modelo.size === 0 || msState.modelo.has(r.modelo)) &&
+    (!cil    || r.cilindrada === cil)
   );
 }
 
@@ -355,29 +405,43 @@ function initFilters() {
   const selCil = document.getElementById('f-cil');
   selCil.innerHTML = '<option value="">Todas</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
   
-  // Provincias
-  const allZonas = [...new Set(RAW_DATA.flatMap(r => r.zonas || []))].sort();
+  // Geographic filters - secuencial
+  // Zona: siempre habilitada
+  const allZonas = Object.keys(ZONA_LOCALIDADES).sort();
   const selZona = document.getElementById('f-zona');
   selZona.innerHTML = '<option value="">Todas</option>' + allZonas.map(z => `<option value="${z}">${z}</option>`).join('');
-  
-  const allProvs = [...new Set(RAW_DATA.flatMap(r => r.provincias || []))].sort();
+
+  // Provincia: deshabilitada hasta que se seleccione Zona
   const selProv = document.getElementById('f-provincia');
-  selProv.innerHTML = '<option value="">Todas</option>' + allProvs.map(p => `<option value="${p}">${p}</option>`).join('');
-  
+  selProv.disabled = true;
+  selProv.innerHTML = '<option value="">Todas</option>';
+
+  // Localidad: deshabilitada hasta que se seleccione Provincia
+  const selLoc = document.getElementById('f-localidad');
+  selLoc.disabled = true;
+  selLoc.innerHTML = '<option value="">Todas</option>';
+
   populateModelos();
 }
 
 function populateModelos() {
   const marcas = [...msState.marca];
   const cil    = document.getElementById('f-cil').value;
-  const modelos = [...new Set(RAW_DATA.filter(r =>
+
+  const filtered = RAW_DATA.filter(r =>
     (marcas.length === 0 || marcas.includes(r.marca)) &&
     (!cil || r.cilindrada === cil)
-  ).map(r => r.modelo))].sort();
-  const prev = document.getElementById('f-modelo').value;
-  const sel = document.getElementById('f-modelo');
-  sel.innerHTML = '<option value="">Todos</option>' + modelos.map(m => `<option value="${m}">${m}</option>`).join('');
-  if (modelos.includes(prev)) sel.value = prev;
+  );
+
+  const modelos = [...new Set(filtered.map(r => r.modelo))].sort();
+
+  // Eliminar modelos que ya no están disponibles del estado
+  msState.modelo.forEach(m => {
+    if (!modelos.includes(m)) msState.modelo.delete(m);
+  });
+
+  buildMsList('modelo', modelos);
+  updateMsTrigger('modelo');
 }
 
 function onSelectCil() { populateModelos(); updateInsights(); }
@@ -386,13 +450,20 @@ function resetFilters() {
   msState.marca.clear();
   buildMsList('marca', msAllItems.marca);
   updateMsTrigger('marca');
+  msState.modelo.clear();
+  buildMsList('modelo', msAllItems.modelo);
+  updateMsTrigger('modelo');
   document.getElementById('f-cil').value = '';
-  document.getElementById('f-modelo').value = '';
   document.getElementById('f-zona').value = '';
   document.getElementById('f-provincia').value = '';
   document.getElementById('f-localidad').value = '';
-  populateModelos();
-  populateLocalidades();
+
+  // Deshabilitar provincia y localidad al limpiar filtros
+  document.getElementById('f-provincia').disabled = true;
+  document.getElementById('f-localidad').disabled = true;
+  document.getElementById('f-provincia').innerHTML = '<option value="">Todas</option>';
+  document.getElementById('f-localidad').innerHTML = '<option value="">Todas</option>';
+
   updateInsights();
 }
 
@@ -457,70 +528,155 @@ function brandLogoHtml(marca) {
 
 // --- Auto insights ---
 function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
-  const insights = [];
+  // Helpers de formato
+  const nf = n => n.toLocaleString('es-AR');
+  const pctStr = (a,b) => { if (!a) return b > 0 ? 'nuevo' : '—'; const p=(b-a)/a*100; return `${p>0?'+':''}${p.toFixed(0)}%`; };
+  const vColor = (a,b) => b>a ? '#27ae60' : b<a ? '#e74c3c' : '#888';
+  const vSpan = (a,b) => `<span style="color:${vColor(a,b)};font-weight:700">${pctStr(a,b)}</span>`;
 
-  // Modelos con datos en ambos meses
-  const rows = [];
+  // ===== (1) CILINDRADA: variación de cada cilindrada =====
+  const cilMap = {};
   allFiltered.forEach(r => {
-    const uA = r[mA]||0, uB = r[mB]||0;
-    rows.push({ marca:r.marca, modelo:r.modelo, uA, uB,
-      varAbs:uB-uA, varPct:uA ? (uB-uA)/uA*100 : null });
+    const k = r.cilindrada || 'Sin categoría';
+    if (!cilMap[k]) cilMap[k] = { a:0, b:0 };
+    cilMap[k].a += r[mA]||0; cilMap[k].b += r[mB]||0;
   });
+  const cilOrder = ['Hasta 110 cc','111-150 cc','151-250 cc','251-500 cc','Más de 500 cc','Sin categoría'];
+  const cilRows = Object.entries(cilMap)
+    .map(([name,v]) => ({ name, ...v }))
+    .filter(c => c.a > 0 || c.b > 0)
+    .sort((x,y) => (cilOrder.indexOf(x.name)) - (cilOrder.indexOf(y.name)));
+  const cilBullets = cilRows.map(c =>
+    `<b>${c.name}</b>: ${nf(c.a)} → ${nf(c.b)} ${vSpan(c.a,c.b)}`);
 
-  // 1. Modelos nuevos (0 en A, >= 10 en B)
-  const newModels = rows.filter(r => r.uA === 0 && r.uB >= 10)
-    .sort((a,b) => b.uB - a.uB).slice(0,3);
-  if (newModels.length > 0) {
-    const names = newModels.map(r => `${r.marca} ${r.modelo} (${r.uB})`).join(', ');
-    insights.push({ icon:'🆕', color:'#1565C0', bg:'#e8f0fb',
-      text: `Modelo${newModels.length>1?'s':''} nuevo${newModels.length>1?'s':''} en ${lB}: ${names}` });
-  }
+  // ===== (4) ZONAS: variación de cada zona =====
+  const zonaMap = {};
+  allFiltered.forEach(r => {
+    const z = r.zona;
+    if (!z || z === 'RUNA') return; // ignorar vacíos y RUNA
+    if (!zonaMap[z]) zonaMap[z] = { a:0, b:0 };
+    zonaMap[z].a += r[mA]||0; zonaMap[z].b += r[mB]||0;
+  });
+  const zonaRows = Object.entries(zonaMap)
+    .map(([name,v]) => ({ name, ...v }))
+    .sort((x,y) => y.b - x.b);
+  const zonaBullets = zonaRows.map(z =>
+    `<b>${z.name}</b>: ${nf(z.a)} → ${nf(z.b)} ${vSpan(z.a,z.b)}`);
 
-  // 2. Mayor caída absoluta (min 30 uA)
-  const worstAbs = rows.filter(r => r.uA >= 30).sort((a,b) => a.varAbs - b.varAbs)[0];
-  if (worstAbs) insights.push({ icon:'📉', color:'#c62828', bg:'#fdf2f2',
-    text: `Mayor caída absoluta: ${worstAbs.marca} ${worstAbs.modelo} (${worstAbs.varAbs.toLocaleString('es-AR')} unid., ${worstAbs.varPct?.toFixed(0)}%)` });
-
-  // 3. Mayor crecimiento absoluto (min 10 uA)
-  const bestAbs = rows.filter(r => r.uA >= 10).sort((a,b) => b.varAbs - a.varAbs)[0];
-  if (bestAbs && bestAbs.varAbs > 0) insights.push({ icon:'📈', color:'#2e7d32', bg:'#eafaf1',
-    text: `Mayor crecimiento absoluto: ${bestAbs.marca} ${bestAbs.modelo} (+${bestAbs.varAbs.toLocaleString('es-AR')} unid., +${bestAbs.varPct?.toFixed(0)}%)` });
-
-  // 4. Marca con mayor caída total
+  // ===== Datos de marca para (2) =====
   const brandMap = {};
-  rows.forEach(r => {
-    if (!brandMap[r.marca]) brandMap[r.marca] = {a:0,b:0};
-    brandMap[r.marca].a += r.uA; brandMap[r.marca].b += r.uB;
+  allFiltered.forEach(r => {
+    if (!brandMap[r.marca]) brandMap[r.marca] = { a:0, b:0 };
+    brandMap[r.marca].a += r[mA]||0; brandMap[r.marca].b += r[mB]||0;
   });
   const brandRows = Object.entries(brandMap)
-    .map(([m,v]) => ({marca:m,a:v.a,b:v.b,varAbs:v.b-v.a,varPct:v.a?(v.b-v.a)/v.a*100:null}))
-    .filter(r => r.a >= 100);
-  const worstBrand = brandRows.sort((a,b) => a.varPct - b.varPct)[0];
-  if (worstBrand) insights.push({ icon:'🔴', color:'#b71c1c', bg:'#fdf2f2',
-    text: `Marca más golpeada: ${worstBrand.marca} (${worstBrand.b.toLocaleString('es-AR')} unid. en ${lB}, ${worstBrand.varPct?.toFixed(0)}%)` });
+    .map(([marca,v]) => ({ marca, a:v.a, b:v.b, varAbs:v.b-v.a, varPct:v.a?(v.b-v.a)/v.a*100:null }))
+    .filter(r => r.a >= 20 || r.b >= 20);
+  const brandRanked = [...brandRows].sort((x,y) => y.b - x.b);
+  const rankOf = {}; brandRanked.forEach((r,i) => rankOf[r.marca] = i+1);
 
-  // 5. Marca con mejor desempeño relativo (min 100 uA)
-  const bestBrand = brandRows.sort((a,b) => b.varPct - a.varPct)[0];
-  if (bestBrand) insights.push({ icon:'🟢', color:'#1b5e20', bg:'#eafaf1',
-    text: `Marca con mejor desempeño: ${bestBrand.marca} (${bestBrand.b.toLocaleString('es-AR')} unid. en ${lB}, ${bestBrand.varPct > 0 ? '+' : ''}${bestBrand.varPct?.toFixed(0)}%)` });
+  // Umbral mínimo: solo insights con variación >= 10 unidades (sino es imperceptible)
+  const MIN_VAR = 10;
 
-  // 6. Modelos que desaparecieron (>= 30 en A, 0 en B)
-  const gone = rows.filter(r => r.uA >= 30 && r.uB === 0).sort((a,b) => b.uA - a.uA).slice(0,2);
-  if (gone.length > 0) {
-    const names = gone.map(r => `${r.marca} ${r.modelo} (${r.uA} en ${lA})`).join(', ');
-    insights.push({ icon:'⛔', color:'#6a1a1a', bg:'#fff3f3',
-      text: `Sin ventas en ${lB}: ${names}` });
+  // ===== (2) MARCAS: insights relevantes =====
+  const marcaBullets = [];
+  const usedBrands = new Set();
+  const pushBrand = (txt, marca) => { if (!usedBrands.has(marca)) { marcaBullets.push(txt); usedBrands.add(marca); } };
+
+  // PRIORIDAD: Marcas nuevas (0 en A, >= MIN_VAR en B) — todas las relevantes
+  const bNewList = [...brandRows].filter(r => r.a === 0 && r.b >= MIN_VAR).sort((a,b) => b.b - a.b);
+  bNewList.forEach(bn => pushBrand(`🆕 <b>${bn.marca}</b> debutó con ${nf(bn.b)} unid en ${lB}`, bn.marca));
+
+  // Mayor crecimiento absoluto
+  const bGain = [...brandRows].filter(r => r.varAbs >= MIN_VAR).sort((a,b) => b.varAbs - a.varAbs)[0];
+  if (bGain) pushBrand(`📈 <b>${bGain.marca}</b> lideró el crecimiento: +${nf(bGain.varAbs)} unid (${pctStr(bGain.a,bGain.b)}), top ${rankOf[bGain.marca]}`, bGain.marca);
+  // Mayor caída absoluta
+  const bDrop = [...brandRows].filter(r => r.varAbs <= -MIN_VAR).sort((a,b) => a.varAbs - b.varAbs)[0];
+  if (bDrop) pushBrand(`📉 <b>${bDrop.marca}</b> la mayor caída: ${nf(bDrop.varAbs)} unid (${pctStr(bDrop.a,bDrop.b)}), top ${rankOf[bDrop.marca]}`, bDrop.marca);
+  // Outlier de crecimiento % (volumen relevante)
+  const oUp = [...brandRows].filter(r => r.b >= 40 && r.varAbs >= MIN_VAR && r.varPct !== null && r.varPct >= 40).sort((a,b) => b.varPct - a.varPct)[0];
+  if (oUp) pushBrand(`🚀 <b>${oUp.marca}</b> outlier: ${pctStr(oUp.a,oUp.b)} (${nf(oUp.a)}→${nf(oUp.b)} unid)`, oUp.marca);
+  // Caída fuerte en top 20
+  const oDown = [...brandRows].filter(r => rankOf[r.marca] <= 20 && r.varAbs <= -MIN_VAR && r.varPct !== null && r.varPct <= -25).sort((a,b) => a.varPct - b.varPct)[0];
+  if (oDown) pushBrand(`⚠️ <b>${oDown.marca}</b> cayó ${pctStr(oDown.a,oDown.b)} estando en top ${rankOf[oDown.marca]}`, oDown.marca);
+  // Otro crecimiento % relevante en top 20
+  const oUp2 = [...brandRows].filter(r => rankOf[r.marca] <= 20 && r.varAbs >= MIN_VAR && r.varPct !== null && r.varPct >= 25).sort((a,b) => b.varPct - a.varPct).find(r => !usedBrands.has(r.marca));
+  if (oUp2) pushBrand(`🟢 <b>${oUp2.marca}</b> creció ${pctStr(oUp2.a,oUp2.b)} (top ${rankOf[oUp2.marca]})`, oUp2.marca);
+
+  // ===== Datos de modelo para (3) =====
+  const modMap = {};
+  allFiltered.forEach(r => {
+    const k = `${r.marca}|${r.modelo}`;
+    if (!modMap[k]) modMap[k] = { marca:r.marca, modelo:r.modelo, cil:r.cilindrada, a:0, b:0 };
+    modMap[k].a += r[mA]||0; modMap[k].b += r[mB]||0;
+  });
+  const modRows = Object.values(modMap)
+    .map(m => ({ ...m, varAbs:m.b-m.a, varPct:m.a?(m.b-m.a)/m.a*100:null }));
+
+  // ===== (3) MODELOS: insights relevantes =====
+  const modeloBullets = [];
+  const usedModels = new Set();
+  const modKey = m => `${m.marca}|${m.modelo}`;
+
+  // PRIORIDAD: Modelos nuevos (0 en A, >= MIN_VAR en B) — hasta 5 destacados
+  const mNewList = [...modRows].filter(r => r.a === 0 && r.b >= MIN_VAR).sort((a,b) => b.b - a.b).slice(0, 5);
+  mNewList.forEach(mn => {
+    modeloBullets.push(`🆕 <b>${mn.marca} ${mn.modelo}</b> debutó con ${nf(mn.b)} unid`);
+    usedModels.add(modKey(mn));
+  });
+
+  // Mayor crecimiento absoluto
+  const mGain = [...modRows].filter(r => r.varAbs >= MIN_VAR && !usedModels.has(modKey(r))).sort((a,b) => b.varAbs - a.varAbs)[0];
+  if (mGain) { modeloBullets.push(`📈 <b>${mGain.marca} ${mGain.modelo}</b>: +${nf(mGain.varAbs)} unid (${pctStr(mGain.a,mGain.b)})`); usedModels.add(modKey(mGain)); }
+  // Mayor caída absoluta
+  const mDrop = [...modRows].filter(r => r.varAbs <= -MIN_VAR && !usedModels.has(modKey(r))).sort((a,b) => a.varAbs - b.varAbs)[0];
+  if (mDrop) { modeloBullets.push(`📉 <b>${mDrop.marca} ${mDrop.modelo}</b>: ${nf(mDrop.varAbs)} unid (${pctStr(mDrop.a,mDrop.b)})`); usedModels.add(modKey(mDrop)); }
+  // Modelo que desapareció
+  const mGone = [...modRows].filter(r => r.a >= 30 && r.b === 0).sort((a,b) => b.a - a.a)[0];
+  if (mGone) modeloBullets.push(`⛔ <b>${mGone.marca} ${mGone.modelo}</b> sin ventas en ${lB} (tenía ${nf(mGone.a)})`);
+  // Cambio de posición en el ranking intra-gama: en la cilindrada de mayor volumen
+  // Solo se reporta si un modelo SUPERÓ a otro en el ranking de unidades (volúmenes comparables)
+  const topCil = cilRows.filter(c => c.name !== 'Sin categoría').sort((a,b) => b.b - a.b)[0];
+  if (topCil) {
+    // Top 10 de la gama por ventas del mes B
+    const inCil = modRows.filter(r => r.cil === topCil.name && r.b > 0)
+      .sort((a,b) => b.b - a.b).slice(0, 10);
+    // Buscar un par que cruzó posiciones: X estaba debajo de Y en A pero arriba en B
+    let swap = null;
+    for (let i = 0; i < inCil.length; i++) {
+      for (let j = i+1; j < inCil.length; j++) {
+        const X = inCil[i], Y = inCil[j]; // X arriba de Y en B (porque está ordenado por b desc)
+        if (X.a < Y.a && X.b > Y.b) {
+          // X superó a Y. Preferir el cruce con menor diferencia de volumen en B (más reñido)
+          const gap = Math.abs(X.b - Y.b);
+          if (!swap || gap < swap.gap) swap = { up:X, down:Y, gap };
+        }
+      }
+    }
+    if (swap) {
+      modeloBullets.push(`🔄 En <b>${topCil.name}</b>: ${swap.up.marca} ${swap.up.modelo} (${nf(swap.up.a)}→${nf(swap.up.b)}) superó a ${swap.down.marca} ${swap.down.modelo} (${nf(swap.down.a)}→${nf(swap.down.b)})`);
+    }
   }
+  // Mayor outlier % con volumen
+  const mOut = [...modRows].filter(r => r.b >= 30 && r.varAbs >= MIN_VAR && r.varPct !== null && r.varPct >= 50).sort((a,b) => b.varPct - a.varPct)[0];
+  if (mOut && mOut.modelo !== mGain?.modelo) modeloBullets.push(`🚀 <b>${mOut.marca} ${mOut.modelo}</b>: ${pctStr(mOut.a,mOut.b)} (${nf(mOut.a)}→${nf(mOut.b)})`);
 
-  // Mostrar top 5
+  // ===== Render de los 4 cuadros =====
   document.getElementById('insights-title').textContent = `Resumen de novedades ${lB}`;
-  const container = document.getElementById('auto-insights');
-  container.innerHTML = insights.slice(0,5).map(ins => `
-    <div style="display:flex;align-items:flex-start;gap:8px;background:${ins.bg};border-left:3px solid ${ins.color};
-      border-radius:6px;padding:8px 12px;font-size:12px;color:#1a1a2e;flex:1;min-width:200px;max-width:calc(50% - 4px)">
-      <span style="font-size:16px;flex-shrink:0">${ins.icon}</span>
-      <span>${ins.text}</span>
-    </div>`).join('');
+
+  const box = (title, color, bullets) => {
+    const lis = bullets.slice(0,10).map(b => `<li style="margin-bottom:4px">${b}</li>`).join('') || '<li style="color:#999">Sin datos</li>';
+    return `<div style="border:1px solid #e0e6f2;border-radius:8px;overflow:hidden;min-width:0">
+      <div style="background:${color};color:#fff;padding:6px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${title}</div>
+      <ul style="margin:0;padding:8px 8px 8px 22px;font-size:11px;line-height:1.5;color:#1a1a2e">${lis}</ul>
+    </div>`;
+  };
+
+  document.getElementById('auto-insights').innerHTML =
+    box('Cilindrada', '#7b5cb8', cilBullets) +
+    box('Marcas', '#4472C4', marcaBullets) +
+    box('Modelos', '#2e8b57', modeloBullets) +
+    box('Zonas', '#d68910', zonaBullets);
 }
 
 // --- Sort state per table ---
@@ -560,6 +716,7 @@ function updateInsights() {
   if (!mA || !mB) return;
   const lA = MONTH_LABELS[MONTHS.indexOf(mA)];
   const lB = MONTH_LABELS[MONTHS.indexOf(mB)];
+  // Usar getFiltered() para que responda a TODOS los filtros
   const allFiltered = getFiltered();
 
   // Top N marcas
@@ -571,6 +728,7 @@ function updateInsights() {
   const allBrandRows = Object.entries(brandMap)
     .map(([marca,v]) => ({ marca, a:v.a, b:v.b, varAbs:v.b-v.a, varPct:v.a?(v.b-v.a)/v.a*100:null }))
     .sort((x,y) => y.b-x.b);
+
   // Totales del mercado completo (SIN filtro de mínimo)
   const mktA = allBrandRows.reduce((s,b)=>s+b.a,0);
   const mktB = allBrandRows.reduce((s,b)=>s+b.b,0);
@@ -632,13 +790,22 @@ function updateInsights() {
       </tr>`;
   })();
 
-  // Modelos worst/best
-  const results = [];
+  // Modelos worst/best - AGREGADOS por marca+modelo (no por localidad)
+  const modeloMap = {};
   allFiltered.forEach(r => {
-    const uA=r[mA]||0, uB=r[mB]||0;
-    if (uB < minU) return;
-    const varAbs=uB-uA, varPct=uA?varAbs/uA*100:null;
-    results.push({ marca:r.marca, modelo:r.modelo, uA, uB, varAbs, varPct });
+    const key = `${r.marca}|${r.modelo}`;
+    if (!modeloMap[key]) {
+      modeloMap[key] = { marca: r.marca, modelo: r.modelo, uA: 0, uB: 0 };
+    }
+    modeloMap[key].uA += r[mA] || 0;
+    modeloMap[key].uB += r[mB] || 0;
+  });
+
+  const results = [];
+  Object.values(modeloMap).forEach(m => {
+    if (m.uB < minU) return;
+    const varAbs = m.uB - m.uA, varPct = m.uA ? varAbs / m.uA * 100 : null;
+    results.push({ marca: m.marca, modelo: m.modelo, uA: m.uA, uB: m.uB, varAbs, varPct });
   });
   const mkHead = (tbl) => `<tr>
     <th style="text-align:center;width:24px">#</th>
@@ -666,8 +833,10 @@ function updateInsights() {
       <td class="${cls}" style="text-align:right">${sign}${r.varAbs.toLocaleString('es-AR')}</td>
       <td class="${cls}" style="text-align:right;font-weight:700">${pct}</td></tr>`;
   }).join('');
-  const worst = sortArr(results.filter(r=>r.varPct!==null).sort((a,b)=>(a.varPct??-Infinity)-(b.varPct??-Infinity)).slice(0,topN), sortState.worst.col, sortState.worst.dir);
-  const best  = sortArr(results.filter(r=>r.varPct!==null).sort((a,b)=>(b.varPct??-Infinity)-(a.varPct??-Infinity)).slice(0,topN), sortState.best.col,  sortState.best.dir);
+  // Backend: Ordenar TODOS los registros por la columna seleccionada (VAR % por default)
+  // Frontend: Mostrar solo Top N
+  const worst = sortArr(results.sort((a,b)=>(a.varPct??-Infinity)-(b.varPct??-Infinity)), sortState.worst.col, sortState.worst.dir).slice(0, topN);
+  const best  = sortArr(results.sort((a,b)=>(b.varPct??-Infinity)-(a.varPct??-Infinity)), sortState.best.col,  sortState.best.dir).slice(0, topN);
 
   // Totales globales SIN filtro de mínimo (mismo universo que marcas)
   const allA = allFiltered.reduce((s,r)=>s+(r[mA]||0),0);
@@ -742,24 +911,71 @@ function enableColumnResize(table) {
   });
 }
 
-function populateLocalidades() {
-  const provincia = document.getElementById('f-provincia').value;
-  const locs = province ? [...new Set(RAW_DATA.filter(r =>
-    r.provincias && (province ? r.provincias.includes(province) : true)
-  ).flatMap(r => r.localidades || []))].sort() : [...new Set(RAW_DATA.flatMap(r => r.localidades || []))].sort();
-  const selLoc = document.getElementById('f-localidad');
-  const prev = selLoc.value;
-  selLoc.innerHTML = '<option value="">Todas</option>' + locs.map(l => `<option value="${l}">${l}</option>`).join('');
-  if (locs.includes(prev)) selLoc.value = prev;
-}
-
 function onZoneChange() {
-  onProvinceChange();
+  const zona = document.getElementById('f-zona').value;
+  const selProv = document.getElementById('f-provincia');
+  const selLoc = document.getElementById('f-localidad');
+
+  // Limpiar provincia y localidad
+  selProv.value = '';
+  selLoc.value = '';
+
+  if (!zona) {
+    // Si no hay zona seleccionada, deshabilitar provincia y localidad
+    selProv.disabled = true;
+    selLoc.disabled = true;
+    selProv.innerHTML = '<option value="">Todas</option>';
+    selLoc.innerHTML = '<option value="">Todas</option>';
+  } else {
+    // Si hay zona, habilitar provincia y mostrar solo provincias de esa zona
+    selProv.disabled = false;
+    selLoc.disabled = true;
+
+    // Obtener provincias de la zona
+    const provFromZona = new Set();
+    if (ZONA_LOCALIDADES[zona]) {
+      // Obtener localidades de la zona
+      const locsInZona = ZONA_LOCALIDADES[zona];
+      // Buscar qué provincias contienen esas localidades
+      for (const [prov, locs] of Object.entries(PROVINCIA_LOCALIDADES)) {
+        if (locs.some(l => locsInZona.includes(l))) {
+          provFromZona.add(prov);
+        }
+      }
+    }
+
+    const provs = Array.from(provFromZona).sort();
+    selProv.innerHTML = '<option value="">Todas</option>' + provs.map(p => `<option value="${p}">${p}</option>`).join('');
+    selLoc.innerHTML = '<option value="">Todas</option>';
+  }
+
+  updateInsights();
 }
 
 function onProvinceChange() {
-  populateLocalidades();
+  const provincia = document.getElementById('f-provincia').value;
+  const selLoc = document.getElementById('f-localidad');
+
+  // Limpiar localidad
+  selLoc.value = '';
+
+  if (!provincia) {
+    // Si no hay provincia seleccionada, deshabilitar localidad
+    selLoc.disabled = true;
+    selLoc.innerHTML = '<option value="">Todas</option>';
+  } else {
+    // Si hay provincia, habilitar localidad y mostrar solo localidades de esa provincia
+    selLoc.disabled = false;
+    const locs = PROVINCIA_LOCALIDADES[provincia] || [];
+    selLoc.innerHTML = '<option value="">Todas</option>' + locs.map(l => `<option value="${l}">${l}</option>`).join('');
+  }
+
   updateInsights();
+}
+
+function populateLocalidades() {
+  // Esta función ya no es necesaria con el nuevo flujo secuencial
+  // pero la mantenemos por compatibilidad
 }
 // --- Boot ---
 document.getElementById('last-update').textContent = typeof LAST_UPDATE !== 'undefined' ? LAST_UPDATE : '—';

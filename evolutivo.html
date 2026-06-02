@@ -388,7 +388,18 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
 </div>
 
 <script>
-const MONTHS = ["01-2015","02-2015","03-2015","04-2015","05-2015","06-2015","07-2015","08-2015","09-2015","10-2015","11-2015","12-2015","01-2016","02-2016","03-2016","04-2016","05-2016","06-2016","07-2016","08-2016","09-2016","10-2016","11-2016","12-2016","01-2017","02-2017","03-2017","04-2017","05-2017","06-2017","07-2017","08-2017","09-2017","10-2017","11-2017","12-2017","01-2018","02-2018","03-2018","04-2018","05-2018","06-2018","07-2018","08-2018","09-2018","10-2018","11-2018","12-2018","01-2019","02-2019","03-2019","04-2019","05-2019","06-2019","07-2019","08-2019","09-2019","10-2019","11-2019","12-2019","01-2020","02-2020","03-2020","04-2020","05-2020","06-2020","07-2020","08-2020","09-2020","10-2020","11-2020","12-2020","01-2022","02-2022","03-2022","04-2022","05-2022","06-2022","07-2022","08-2022","09-2022","10-2022","11-2022","12-2022","01-2023","02-2023","03-2023","04-2023","05-2023","06-2023","07-2023","08-2023","09-2023","10-2023","11-2023","12-2023","01-2024","02-2024","03-2024","04-2024","05-2024","06-2024","07-2024","08-2024","09-2024","10-2024","11-2024","12-2024","01-2025","02-2025","03-2025","04-2025","05-2025","06-2025","07-2025","08-2025","09-2025","10-2025","11-2025","12-2025","01-2026","02-2026","03-2026","04-2026","05-2026"];
+// MONTHS generado dinámicamente desde los datos reales (evita meses vacíos y
+// asegura incluir todos los que tienen ventas)
+const MONTHS = (() => {
+  const set = new Set();
+  RAW_DATA.forEach(r => {
+    for (const k in r) { if (/^\d{2}-\d{4}$/.test(k)) set.add(k); }
+  });
+  return [...set].sort((a,b) => {
+    const [ma,ya] = a.split('-'), [mb,yb] = b.split('-');
+    return ya === yb ? (+ma - +mb) : (+ya - +yb);
+  });
+})();
 const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '/' + mm; });
 const COLORS = ['#1F3864','#2E5FA3','#4472C4','#5B9BD5','#9DC3E6','#F39C12','#E74C3C','#27AE60','#8E44AD','#16A085','#D35400','#2C3E50','#1ABC9C','#E67E22','#C0392B','#7F8C8D','#2980B9','#8E44AD','#27AE60','#F1C40F'];
 
@@ -587,23 +598,38 @@ function getFiltered() {
 }
 
 function aggregateByBrand(data, mths) {
+  // Recorre solo los meses presentes en cada registro (datos dispersos) en vez
+  // de los 77 meses → mucho más rápido
+  const mset = new Set(mths);
   const map = {};
   data.forEach(r => {
-    if (!map[r.marca]) map[r.marca] = { marca: r.marca, mths: {} };
-    mths.forEach(m => { map[r.marca].mths[m] = (map[r.marca].mths[m] || 0) + (r[m] || 0); });
+    let b = map[r.marca];
+    if (!b) b = map[r.marca] = { marca: r.marca, mths: {}, total: 0 };
+    for (const k in r) {
+      if (mset.has(k)) { const v = r[k] || 0; b.mths[k] = (b.mths[k] || 0) + v; b.total += v; }
+    }
   });
-  return Object.values(map).map(b => ({
-    ...b,
-    total: mths.reduce((s, m) => s + b.mths[m], 0)
-  })).sort((a,b) => b.total - a.total);
+  const rows = Object.values(map);
+  rows.forEach(b => { for (const m of mths) if (!(m in b.mths)) b.mths[m] = 0; });
+  return rows.sort((a,b) => b.total - a.total);
 }
 
 function aggregateByBrandModel(data, mths) {
-  return data.map(r => ({
-    marca: r.marca, modelo: r.modelo, cilindrada: r.cilindrada || 'Sin categoría',
-    mths: Object.fromEntries(mths.map(m => [m, r[m]||0])),
-    total: mths.reduce((s,m) => s + (r[m]||0), 0)
-  })).sort((a,b) => b.total - a.total);
+  // Agregar por marca+modelo (no una fila por localidad) y recorrer solo
+  // meses presentes → corrige duplicados y acelera enormemente
+  const mset = new Set(mths);
+  const map = {};
+  data.forEach(r => {
+    const key = r.marca + '|' + r.modelo;
+    let o = map[key];
+    if (!o) o = map[key] = { marca: r.marca, modelo: r.modelo, cilindrada: r.cilindrada || 'Sin categoría', mths: {}, total: 0 };
+    for (const k in r) {
+      if (mset.has(k)) { const v = r[k] || 0; o.mths[k] = (o.mths[k] || 0) + v; o.total += v; }
+    }
+  });
+  const rows = Object.values(map);
+  rows.forEach(o => { for (const m of mths) if (!(m in o.mths)) o.mths[m] = 0; });
+  return rows.sort((a,b) => b.total - a.total);
 }
 
 // --- KPIs ---
@@ -718,13 +744,18 @@ function updateChartEvol(brands, mths, marketTotals) {
 function updateChartEvolCil(filtered, mths, marketTotals) {
   destroyChart(chartEvolCil);
 
-  // aggregate by cilindrada
+  // aggregate by cilindrada (recorre solo meses presentes en cada registro)
+  const mset = new Set(mths);
   const map = {};
   filtered.forEach(r => {
     const cil = r.cilindrada || 'Sin categoría';
-    if (!map[cil]) map[cil] = { cil, mths: {} };
-    mths.forEach(m => { map[cil].mths[m] = (map[cil].mths[m] || 0) + (r[m] || 0); });
+    let g = map[cil];
+    if (!g) g = map[cil] = { cil, mths: {} };
+    for (const k in r) {
+      if (mset.has(k)) { const v = r[k] || 0; g.mths[k] = (g.mths[k] || 0) + v; }
+    }
   });
+  Object.values(map).forEach(g => { for (const m of mths) if (!(m in g.mths)) g.mths[m] = 0; });
   const CIL_ORDER  = ['Hasta 110 cc','111-150 cc','151-250 cc','251-500 cc','Más de 500 cc','Sin categoría'];
   const CIL_COLORS = ['#2196F3','#FF9800','#4CAF50','#F44336','#9C27B0','#9E9E9E'];
   const groups = Object.values(map).sort((a, b) => {
