@@ -108,24 +108,46 @@ for lf in loc_files:
 
 all_months = sorted(all_months_set, key=lambda m: (int(m.split('-')[1]), int(m.split('-')[0])))
 
-# Construir registros finales (sparse: solo meses con ventas > 0)
+# Construir registros finales en formato COMPACTO para reducir tamaño:
+# - sparse: solo meses con ventas > 0
+# - no se repiten campos deducibles (marca/cilindrada via modelo, provincia/zona
+#   via localidad). Se guardan en 2 tablas de lookup y el navegador rehidrata.
+# Claves cortas por registro: o=modelo, l=localidad, t=total, meses como MM-AAAA.
+modelo_info = {}   # modelo -> [marca, cilindrada]
+loc_info    = {}   # localidad -> [provincia, zona]
 records = []
 for rec in records_dict.values():
     total = sum(rec.get(m, 0) for m in all_months)
-    if total > 0:
-        rec['total'] = total
-        records.append(rec)
+    if total <= 0:
+        continue
+    modelo_info.setdefault(rec['modelo'], [rec['marca'], rec['cilindrada']])
+    loc_info.setdefault(rec['localidad'], [rec['provincia'], rec['zona']])
+    out = {'o': rec['modelo'], 'l': rec['localidad']}
+    for m in all_months:
+        if m in rec and rec[m] > 0:
+            out[m] = rec[m]
+    out['t'] = total
+    records.append(out)
 
-print(f'Construidos {len(records)} registros')
+print(f'Construidos {len(records)} registros | {len(modelo_info)} modelos | {len(loc_info)} localidades')
 
 # ===== 4. ESCRIBIR DATA.JS =====
 last_update = max(os.path.getmtime(f) for f in loc_files) if loc_files else None
 last_update_str = datetime.datetime.fromtimestamp(last_update).strftime('%d/%m/%Y') if last_update else ''
 
 js  = f'const LAST_UPDATE = "{last_update_str}";\n'
-js += 'const RAW_DATA = ' + json.dumps(records, ensure_ascii=False) + ';\n'
-js += 'const ZONA_LOCALIDADES = ' + json.dumps(zona_localidades, ensure_ascii=False) + ';\n'
-js += 'const PROVINCIA_LOCALIDADES = ' + json.dumps(provincia_localidades, ensure_ascii=False) + ';\n'
+js += 'const RAW_DATA = ' + json.dumps(records, ensure_ascii=False, separators=(',', ':')) + ';\n'
+js += 'const MODELO_INFO = ' + json.dumps(modelo_info, ensure_ascii=False, separators=(',', ':')) + ';\n'
+js += 'const LOCALIDAD_INFO = ' + json.dumps(loc_info, ensure_ascii=False, separators=(',', ':')) + ';\n'
+js += 'const ZONA_LOCALIDADES = ' + json.dumps(zona_localidades, ensure_ascii=False, separators=(',', ':')) + ';\n'
+js += 'const PROVINCIA_LOCALIDADES = ' + json.dumps(provincia_localidades, ensure_ascii=False, separators=(',', ':')) + ';\n'
+# Rehidratación: reconstruye los campos completos en cada registro al cargar
+js += ('RAW_DATA.forEach(function(r){'
+       'var mi=MODELO_INFO[r.o]||["SIN MARCA","Sin categoría"];'
+       'var li=LOCALIDAD_INFO[r.l]||["",""];'
+       'r.modelo=r.o;r.localidad=r.l;r.total=r.t;'
+       'r.marca=mi[0];r.cilindrada=mi[1];r.provincia=li[0];r.zona=li[1];'
+       '});\n')
 
 with open(OUT_JS, 'w', encoding='utf-8') as fh:
     fh.write(js)
