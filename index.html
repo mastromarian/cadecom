@@ -289,18 +289,8 @@ thead th { position: relative; user-select: none; }
 </div>
 
 <script>
-// MONTHS generado dinámicamente desde los datos reales (evita meses vacíos y
-// asegura incluir todos los que tienen ventas)
-const MONTHS = (() => {
-  const set = new Set();
-  RAW_DATA.forEach(r => {
-    for (const k in r) { if (/^\d{2}-\d{4}$/.test(k)) set.add(k); }
-  });
-  return [...set].sort((a,b) => {
-    const [ma,ya] = a.split('-'), [mb,yb] = b.split('-');
-    return ya === yb ? (+ma - +mb) : (+ya - +yb);
-  });
-})();
+// Lista completa de meses (viene en data.js); la historia se carga en diferido
+const MONTHS = ALL_MONTHS;
 const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '.' + mm; });
 
 // --- Multiselect ---
@@ -989,6 +979,30 @@ document.getElementById('ins-month-b').value = MONTHS[MONTHS.length - 1];
 
 initFilters();
 updateInsights();
+
+// --- Carga diferida de la historia (2013-2023) en segundo plano ---
+// data.js trae solo lo reciente para render instantáneo; al terminar de
+// fusionar la historia, se re-renderiza con la base completa.
+function onHistoriaLoaded() {
+  // Refrescar listas (pueden aparecer marcas/cilindradas/modelos solo históricos),
+  // preservando las selecciones actuales del usuario
+  const marcas = [...new Set(RAW_DATA.map(r => r.marca))].sort();
+  buildMsList('marca', marcas);
+  updateMsTrigger('marca');
+  const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
+  cats.push('Sin categoría');
+  const selCil = document.getElementById('f-cil');
+  const prevCil = selCil.value;
+  selCil.innerHTML = '<option value="">Todas</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (cats.includes(prevCil)) selCil.value = prevCil;
+  populateModelos();
+  updateInsights();
+}
+(function() {
+  const s = document.createElement('script');
+  s.src = 'data-historia.js'; s.async = true;
+  document.body.appendChild(s);
+})();
 </script>
 </body>
 </html>
