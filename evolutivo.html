@@ -346,10 +346,16 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
       <h2 id="chart1-title" style="margin:0">Evolutivo por marca</h2>
-      <div class="view-toggle" style="margin:0">
-        <button class="btn-toggle active" id="btn-marca-nominal" onclick="setMetricMarca('nominal')">Nominal</button>
-        <button class="btn-toggle" id="btn-marca-pct" onclick="setMetricMarca('pct')">Líneas %</button>
-        <button class="btn-toggle" id="btn-marca-stacked" onclick="setMetricMarca('stacked')">Área 100%</button>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="view-toggle" style="margin:0">
+          <button class="btn-toggle active" id="btn-group-marca" onclick="setGroupMarca('marca')">Por marca</button>
+          <button class="btn-toggle" id="btn-group-total" onclick="setGroupMarca('total')">Total</button>
+        </div>
+        <div class="view-toggle" style="margin:0">
+          <button class="btn-toggle active" id="btn-marca-nominal" onclick="setMetricMarca('nominal')">Nominal</button>
+          <button class="btn-toggle" id="btn-marca-pct" onclick="setMetricMarca('pct')">Líneas %</button>
+          <button class="btn-toggle" id="btn-marca-stacked" onclick="setMetricMarca('stacked')">Área 100%</button>
+        </div>
       </div>
     </div>
     <div class="chart-wrap" style="height:320px"><canvas id="chartEvolutivo"></canvas></div>
@@ -394,6 +400,7 @@ const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return y
 const COLORS = ['#1F3864','#2E5FA3','#4472C4','#5B9BD5','#9DC3E6','#F39C12','#E74C3C','#27AE60','#8E44AD','#16A085','#D35400','#2C3E50','#1ABC9C','#E67E22','#C0392B','#7F8C8D','#2980B9','#8E44AD','#27AE60','#F1C40F'];
 
 let metricMarca = 'nominal';
+let groupMarca  = 'marca';   // 'marca' = una línea por marca | 'total' = una sola línea total
 let metricCil   = 'nominal';
 let currentPage = 1;
 const PAGE_SIZE = 25;
@@ -648,7 +655,30 @@ function updateChartEvol(brands, mths, marketTotals) {
     pct:     'Evolutivo por marca (participación %)',
     stacked: 'Evolutivo por marca — área 100%'
   };
-  document.getElementById('chart1-title').textContent = titles[metricMarca];
+  document.getElementById('chart1-title').textContent =
+    groupMarca === 'total' ? 'Evolutivo total (unidades)' : titles[metricMarca];
+
+  if (groupMarca === 'total') {
+    // Una sola línea: total de unidades (respeta los filtros aplicados)
+    const totalFiltrado = getTotalsPerMonth(brands, mths);
+    chartEvol = new Chart(document.getElementById('chartEvolutivo'), {
+      type: 'line',
+      data: { labels, datasets: [{
+        label: 'Total', data: totalFiltrado,
+        borderColor: '#1F3864', backgroundColor: '#1F386422',
+        borderWidth: 2.5, pointRadius: 3, tension: 0.3, fill: true
+      }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } } },
+        scales: {
+          y: { grid: { color: '#eee' }, ticks: { callback: v => v.toLocaleString('es-AR') } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+    return;
+  }
 
   if (metricMarca === 'stacked') {
     // stacked 100% bar — "Resto" bucket for brands not in top
@@ -925,6 +955,25 @@ function setMetricMarca(m) {
   document.getElementById('btn-marca-pct').classList.toggle('active', m === 'pct');
   document.getElementById('btn-marca-stacked').classList.toggle('active', m === 'stacked');
   update();
+}
+
+function setGroupMarca(g) {
+  groupMarca = g;
+  document.getElementById('btn-group-marca').classList.toggle('active', g === 'marca');
+  document.getElementById('btn-group-total').classList.toggle('active', g === 'total');
+  // En modo "total" las vistas %/Área 100% no aplican: deshabilitarlas y forzar nominal
+  const isTotal = g === 'total';
+  ['btn-marca-pct','btn-marca-stacked'].forEach(id => {
+    const b = document.getElementById(id);
+    b.disabled = isTotal;
+    b.style.opacity = isTotal ? '0.4' : '';
+    b.style.cursor = isTotal ? 'not-allowed' : '';
+  });
+  if (isTotal && metricMarca !== 'nominal') {
+    setMetricMarca('nominal');  // ya llama a update()
+  } else {
+    update();
+  }
 }
 
 function setMetricCil(m) {
