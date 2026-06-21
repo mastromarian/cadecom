@@ -969,7 +969,16 @@ function populateLocalidades() {
   // pero la mantenemos por compatibilidad
 }
 // --- Boot ---
-document.getElementById('last-update').textContent = typeof LAST_UPDATE !== 'undefined' ? LAST_UPDATE : '—';
+document.getElementById('last-update').textContent = (function(){
+  if (typeof LAST_UPDATE === 'undefined' || !LAST_UPDATE) return '—';
+  const p = LAST_UPDATE.split('/');
+  if (p.length !== 3) return LAST_UPDATE;
+  const d = new Date(+p[2], +p[1]-1, +p[0]); d.setHours(0,0,0,0);
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const dias = Math.round((hoy - d) / 86400000);
+  if (dias <= 0) return LAST_UPDATE;
+  return LAST_UPDATE + ' (hace ' + dias + (dias === 1 ? ' día' : ' días') + ')';
+})();
 
 // Init insights selectors
 const insOpts = MONTHS.map(m => `<option value="${m}">${MONTH_LABELS[MONTHS.indexOf(m)]}</option>`).join('');
