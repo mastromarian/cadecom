@@ -178,6 +178,11 @@ tbody td { padding: 7px 10px; text-align: right; border-bottom: 1px solid #eee; 
 tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align: left; font-weight: 600; }
 .total-row td { background: #d9e1f2 !important; font-weight: 700; border-top: 2px solid #2E5FA3; }
 
+/* Tabla evolutiva: caja con scroll propio (vertical y horizontal) para fijar
+   el encabezado y las primeras columnas */
+.tbl-scroll { overflow: auto; max-height: calc(100vh - 230px); }
+#tabla thead th { top: 0; }
+
 /* Sticky first 4 columns — Tabla evolutiva */
 #tabla thead th:nth-child(1), #tabla tbody td:nth-child(1) { position: sticky; left: 0px;   z-index: 2; min-width: 36px;  max-width: 36px; }
 #tabla thead th:nth-child(2), #tabla tbody td:nth-child(2) { position: sticky; left: 36px;  z-index: 2; min-width: 110px; max-width: 110px; }
@@ -377,7 +382,7 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
   <!-- Table -->
   <div class="card">
     <h2>Tabla evolutiva por marca / modelo</h2>
-    <div class="tbl-wrap">
+    <div class="tbl-wrap tbl-scroll">
       <table id="tabla">
         <thead id="tabla-head"></thead>
         <tbody id="tabla-body"></tbody>
