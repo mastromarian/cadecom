@@ -14,38 +14,36 @@ body { font-family: Arial, sans-serif; background: #f0f3f8; color: #1a1a2e; font
 
 /* HEADER */
 header {
-  background: linear-gradient(135deg, #1F3864 0%, #2E5FA3 100%);
+  background: #0a0a0a;
   color: #fff;
-  padding: 8px 28px;
+  padding: 10px 24px;
   display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  border-bottom: 3px solid #e3000f;
   position: sticky; top: 0; z-index: 100;
 }
-header h1 { font-size: 15px; font-weight: 700; }
-header p  { font-size: 11px; opacity: .8; margin-top: 1px; }
-.badge { background: rgba(255,255,255,.15); border-radius: 20px; padding: 5px 14px; font-size: 11px; }
+header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #fff; }
+header p  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+.badge { background: rgba(255,255,255,.12); border-radius: 20px; padding: 5px 14px; font-size: 11px; }
 
 /* NAV */
 .nav-bar {
-  background: #e4e9f2;
-  border-bottom: 2px solid #c8d0e0;
-  padding: 0 28px;
+  background: #1a1a1a;
+  border-bottom: none;
+  padding: 0 24px;
   display: flex; gap: 0;
-  box-shadow: 0 1px 4px rgba(0,0,0,.08);
   position: sticky; top: 0; z-index: 99;
 }
 .nav-item {
   display: inline-flex; align-items: center;
-  padding: 6px 16px;
-  font-size: 12px; font-weight: 600; color: #555;
+  padding: 8px 16px;
+  font-size: 12px; font-weight: 600; color: #9ca3af;
   text-decoration: none; white-space: nowrap;
   border-bottom: 3px solid transparent;
-  transition: color .15s, border-color .15s;
-  margin-bottom: -2px;
+  transition: color .15s, background .15s;
 }
-.nav-item:hover { color: #2E5FA3; border-bottom-color: #9DC3E6; }
-.nav-item.active { color: #1F3864; border-bottom-color: #2E5FA3; }
-.nav-item.disabled { color: #bbb; cursor: default; pointer-events: none; }
+.nav-item:hover { color: #fff; }
+.nav-item.active { color: #fff; background: #e3000f; }
+.nav-item.disabled { color: #555; cursor: default; pointer-events: none; }
 
 /* FILTERS BAR */
 .filters-bar {
