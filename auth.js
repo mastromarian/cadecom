@@ -94,11 +94,16 @@
     let user = sess && sess.user;
     if (!user) { try { user = (await sb.auth.getUser()).data.user; } catch (e) {} }
     if (!user) return null;
-    let role = 'lectura', ok = false;
+    const cached = localStorage.getItem('cadecom_role');
+    let role = cached || 'lectura', ok = !!cached;
     try {
-      const { data, error } = await sb.from('profiles').select('role').eq('id', user.id).single();
-      if (!error) { ok = true; if (data && data.role) role = data.role; }
-    } catch (e) { /* consulta falló => sesión vencida o sin red */ }
+      // timeout duro: si la consulta no responde en 4s, usamos el rol cacheado
+      const { data, error } = await Promise.race([
+        sb.from('profiles').select('role').eq('id', user.id).single(),
+        new Promise(r => setTimeout(() => r({ data: null, error: { _timeout: true } }), 4000))
+      ]);
+      if (!error) { ok = true; role = (data && data.role) || 'lectura'; localStorage.setItem('cadecom_role', role); }
+    } catch (e) { /* sin red / sesión vencida → queda el cache si había */ }
     return { email: user.email, role, ok };
   }
 
@@ -141,6 +146,7 @@
   }
 
   async function logout() {
+    try { localStorage.removeItem('cadecom_role'); } catch (e) {}
     try { await sb.auth.signOut(); } catch (e) {}
     location.reload();
   }
@@ -162,8 +168,15 @@
     // Lectura directa (instantánea) de la sesión guardada → sin cuelgues, y
     // mantiene la sesión entre visitas (no pide login cada vez).
     const sess = getStoredSession();
-    if (sess) { await enter(sess); return; }
-    showForm('Ingresá con tu usuario');
+    if (!sess) { showForm('Ingresá con tu usuario'); return; }
+    // Si ya sabemos que es admin (cache), entramos AL INSTANTE y re-verificamos atrás.
+    if (localStorage.getItem('cadecom_role') === 'admin') {
+      gate.remove();
+      if (document.body) adminChip(sess.user.email);
+      loadRole(sess).then(u => { if (u && u.ok && u.role !== 'admin') location.reload(); });
+      return;
+    }
+    await enter(sess);
   }
   start();
 })();
