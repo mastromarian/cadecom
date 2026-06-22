@@ -70,15 +70,30 @@
     const lo = $('auth-logout'); if (lo) lo.addEventListener('click', logout);
   }
 
-  async function loadRole() {
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return null;
-    let role = 'lectura';
+  // Lee la sesión guardada directo de localStorage (instantáneo, sin el "lock"
+  // de getSession que a veces se cuelga entre recargas).
+  const STORAGE_KEY = 'sb-' + SUPABASE_URL.replace('https://', '').split('.')[0] + '-auth-token';
+  function getStoredSession() {
     try {
-      const { data } = await sb.from('profiles').select('role').eq('id', user.id).single();
-      if (data && data.role) role = data.role;
-    } catch (e) { /* sin fila de perfil => lectura */ }
-    return { email: user.email, role };
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      const s = o.currentSession || o;
+      if (s && s.access_token && s.user) return s;
+    } catch (e) {}
+    return null;
+  }
+
+  async function loadRole(sess) {
+    let user = sess && sess.user;
+    if (!user) { try { user = (await sb.auth.getUser()).data.user; } catch (e) {} }
+    if (!user) return null;
+    let role = 'lectura', ok = false;
+    try {
+      const { data, error } = await sb.from('profiles').select('role').eq('id', user.id).single();
+      if (!error) { ok = true; if (data && data.role) role = data.role; }
+    } catch (e) { /* consulta falló => sesión vencida o sin red */ }
+    return { email: user.email, role, ok };
   }
 
   function adminChip(email) {
@@ -98,12 +113,12 @@
     chip.querySelector('#chip-logout').addEventListener('click', logout);
   }
 
-  async function enter() {
-    const u = await loadRole();
+  async function enter(sess) {
+    const u = await loadRole(sess);
     if (!u) { showForm('Ingresá con tu usuario'); return; }
-    if (u.role !== 'admin') { denyView(u.email); return; }   // lectura → bloqueado
-    gate.remove();
-    if (document.body) adminChip(u.email);
+    if (u.role === 'admin') { gate.remove(); if (document.body) adminChip(u.email); return; }
+    if (!u.ok) { showForm('Tu sesión expiró. Ingresá de nuevo.'); return; }  // consulta falló → re-login
+    denyView(u.email);                                                       // lectura genuino → bloqueado
   }
 
   async function doLogin() {
@@ -116,7 +131,7 @@
     const { error } = await sb.auth.signInWithPassword({ email, password: pass });
     btn.disabled = false; btn.textContent = 'Entrar';
     if (error) { errEl.textContent = 'Email o contraseña incorrectos'; $('auth-pass').select(); return; }
-    await enter();
+    await enter(getStoredSession());
   }
 
   async function logout() {
@@ -138,14 +153,10 @@
       return;
     }
     if (!sb) { showForm('Falta configurar Supabase'); return; }
-    try {
-      // timeout defensivo: si getSession se cuelga, mostramos el login igual
-      const session = await Promise.race([
-        sb.auth.getSession().then(r => r.data.session),
-        new Promise(r => setTimeout(() => r(null), 6000))
-      ]);
-      if (session) { await enter(); return; }
-    } catch (e) { /* sin sesión */ }
+    // Lectura directa (instantánea) de la sesión guardada → sin cuelgues, y
+    // mantiene la sesión entre visitas (no pide login cada vez).
+    const sess = getStoredSession();
+    if (sess) { await enter(sess); return; }
     showForm('Ingresá con tu usuario');
   }
   start();
