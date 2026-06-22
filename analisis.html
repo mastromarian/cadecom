@@ -20,6 +20,13 @@ header {
 header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #fff; }
 header p  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .badge { background: rgba(255,255,255,.12); border-radius: 20px; padding: 5px 14px; font-size: 11px; }
+/* Banner de última actualización (estilo ranking-meli) */
+.update-banner { display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1.5px solid; }
+.update-banner .ub-icon { font-size: 10px; }
+.ub-fresh { background: #e9f9ee; color: #137a36; border-color: #34c759; }
+.ub-mid   { background: #fff8e6; color: #8a6d00; border-color: #ffcc00; }
+.ub-stale { background: #fdeaea; color: #b3000f; border-color: #ff3b30; }
 
 /* NAV */
 .nav-bar {
@@ -124,11 +131,12 @@ tbody td { padding: 5px 8px; text-align: right; border-bottom: 1px solid #eee; w
 </head>
 <body>
 
-<header>
+<header style="align-items:flex-start;padding:8px 24px">
   <div>
     <h1>CADECOM</h1>
-    <p>Actualizado: <span id="last-update">—</span></p>
+    <div class="update-banner" id="update-banner" style="margin-top:5px"></div>
   </div>
+  <div id="header-user"></div>
 </header>
 
 <nav class="nav-bar">
@@ -625,15 +633,24 @@ function updateInsights() {
 }
 
 // --- Boot ---
-document.getElementById('last-update').textContent = (function(){
-  if (typeof LAST_UPDATE === 'undefined' || !LAST_UPDATE) return '—';
+(function renderUpdateBanner(){
+  const banner = document.getElementById('update-banner');
+  if (!banner) return;
+  if (typeof LAST_UPDATE === 'undefined' || !LAST_UPDATE) {
+    banner.className = 'update-banner ub-stale';
+    banner.innerHTML = '<span class="ub-icon">🔴</span><div>Sin fecha de actualización</div>';
+    return;
+  }
   const p = LAST_UPDATE.split('/');
-  if (p.length !== 3) return LAST_UPDATE;
   const d = new Date(+p[2], +p[1]-1, +p[0]); d.setHours(0,0,0,0);
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const dias = Math.round((hoy - d) / 86400000);
-  if (dias <= 0) return LAST_UPDATE;
-  return LAST_UPDATE + ' (hace ' + dias + (dias === 1 ? ' día' : ' días') + ')';
+  let cls = 'ub-stale', icon = '🔴';
+  if (dias <= 3)      { cls = 'ub-fresh'; icon = '🟢'; }
+  else if (dias <= 7) { cls = 'ub-mid';   icon = '🟡'; }
+  const hace = dias <= 0 ? 'hoy' : dias === 1 ? 'hace 1 día' : 'hace ' + dias + ' días';
+  banner.className = 'update-banner ' + cls;
+  banner.innerHTML = '<span class="ub-icon">' + icon + '</span><div>Última actualización: ' + LAST_UPDATE + ' (' + hace + ')</div>';
 })();
 
 // Init insights selectors

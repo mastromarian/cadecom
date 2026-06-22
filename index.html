@@ -6,7 +6,7 @@
 <title>CADECOM — Variaciones del mes</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
-<script src="data.js"></script>
+<script src="https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: Arial, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
@@ -22,6 +22,13 @@ header {
 header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #fff; }
 header p  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .badge { background: rgba(255,255,255,.12); border-radius: 20px; padding: 5px 14px; font-size: 12px; }
+/* Banner de última actualización (estilo ranking-meli) */
+.update-banner { display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1.5px solid; }
+.update-banner .ub-icon { font-size: 10px; }
+.ub-fresh { background: #e9f9ee; color: #137a36; border-color: #34c759; }
+.ub-mid   { background: #fff8e6; color: #8a6d00; border-color: #ffcc00; }
+.ub-stale { background: #fdeaea; color: #b3000f; border-color: #ff3b30; }
 
 /* NAV */
 .nav-bar {
@@ -149,17 +156,18 @@ thead th { position: relative; user-select: none; }
 </head>
 <body>
 
-<header>
+<header style="align-items:flex-start;padding:8px 24px">
   <div>
     <h1>CADECOM</h1>
-    <p>Actualizado: <span id="last-update">—</span></p>
+    <div class="update-banner" id="update-banner" style="margin-top:5px"></div>
   </div>
+  <div id="header-user"></div>
 </header>
 
 <nav class="nav-bar">
   <a href="index.html" class="nav-item active">Variaciones del mes</a>
   <a href="evolutivo.html" class="nav-item">Evolutivo histórico</a>
-  <a href="pacheco.html"  class="nav-item" style="display:none">🏍 Ventas Pacheco</a>
+  <a href="basedatos.html" class="nav-item">Base de datos</a>
 </nav>
 
 <div class="filters-bar">
@@ -968,15 +976,24 @@ function populateLocalidades() {
   // pero la mantenemos por compatibilidad
 }
 // --- Boot ---
-document.getElementById('last-update').textContent = (function(){
-  if (typeof LAST_UPDATE === 'undefined' || !LAST_UPDATE) return '—';
+(function renderUpdateBanner(){
+  const banner = document.getElementById('update-banner');
+  if (!banner) return;
+  if (typeof LAST_UPDATE === 'undefined' || !LAST_UPDATE) {
+    banner.className = 'update-banner ub-stale';
+    banner.innerHTML = '<span class="ub-icon">🔴</span><div>Sin fecha de actualización</div>';
+    return;
+  }
   const p = LAST_UPDATE.split('/');
-  if (p.length !== 3) return LAST_UPDATE;
   const d = new Date(+p[2], +p[1]-1, +p[0]); d.setHours(0,0,0,0);
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const dias = Math.round((hoy - d) / 86400000);
-  if (dias <= 0) return LAST_UPDATE;
-  return LAST_UPDATE + ' (hace ' + dias + (dias === 1 ? ' día' : ' días') + ')';
+  let cls = 'ub-stale', icon = '🔴';
+  if (dias <= 3)      { cls = 'ub-fresh'; icon = '🟢'; }
+  else if (dias <= 7) { cls = 'ub-mid';   icon = '🟡'; }
+  const hace = dias <= 0 ? 'hoy' : dias === 1 ? 'hace 1 día' : 'hace ' + dias + ' días';
+  banner.className = 'update-banner ' + cls;
+  banner.innerHTML = '<span class="ub-icon">' + icon + '</span><div>Última actualización: ' + LAST_UPDATE + ' (' + hace + ')</div>';
 })();
 
 // Init insights selectors
@@ -1009,7 +1026,7 @@ function onHistoriaLoaded() {
 }
 (function() {
   const s = document.createElement('script');
-  s.src = 'data-historia.js'; s.async = true;
+  s.src = 'https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data-historia.js'; s.async = true;
   document.body.appendChild(s);
 })();
 </script>

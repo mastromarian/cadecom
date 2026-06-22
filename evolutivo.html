@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
-<script src="data.js"></script>
+<script src="https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: Arial, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
@@ -24,6 +24,13 @@ header {
 header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #fff; }
 header p  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .badge { background: rgba(255,255,255,.12); border-radius: 20px; padding: 5px 14px; font-size: 11px; }
+/* Banner de última actualización (estilo ranking-meli) */
+.update-banner { display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1.5px solid; }
+.update-banner .ub-icon { font-size: 10px; }
+.ub-fresh { background: #e9f9ee; color: #137a36; border-color: #34c759; }
+.ub-mid   { background: #fff8e6; color: #8a6d00; border-color: #ffcc00; }
+.ub-stale { background: #fdeaea; color: #b3000f; border-color: #ff3b30; }
 
 /* NAV */
 .nav-bar {
@@ -194,6 +201,13 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
 #tabla tbody tr:nth-child(even) td:nth-child(2),
 #tabla tbody tr:nth-child(even) td:nth-child(3),
 #tabla tbody tr:nth-child(even) td:nth-child(4) { background: #f5f7fc; }
+
+/* Fila TOTAL fijada justo debajo del encabezado (sticky vertical) */
+#tabla tbody tr.total-pin td { position: sticky; top: var(--thead-h, 33px); z-index: 3; background: #d9e1f2 !important; }
+#tabla tbody tr.total-pin td:nth-child(1),
+#tabla tbody tr.total-pin td:nth-child(2),
+#tabla tbody tr.total-pin td:nth-child(3),
+#tabla tbody tr.total-pin td:nth-child(4) { z-index: 5; }
 #tabla tbody tr:nth-child(even) td:nth-child(1) { background: #eaecf4; }
 #tabla tbody tr:hover td:nth-child(1),
 #tabla tbody tr:hover td:nth-child(2),
@@ -258,18 +272,19 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
 </head>
 <body>
 
-<header>
+<header style="align-items:flex-start;padding:8px 24px">
   <div>
     <h1>CADECOM</h1>
-    <p style="font-size:13px;opacity:.9">Actualizado: <span id="last-update">—</span></p>
+    <div class="update-banner" id="update-banner" style="margin-top:5px"></div>
   </div>
+  <div id="header-user"></div>
 </header>
 
 <!-- NAV -->
 <nav class="nav-bar">
   <a href="index.html" class="nav-item">Variaciones del mes</a>
   <a href="evolutivo.html" class="nav-item active">Evolutivo histórico</a>
-  <a href="pacheco.html" class="nav-item" style="display:none">🏍 Ventas Pacheco</a>
+  <a href="basedatos.html" class="nav-item">Base de datos</a>
 </nav>
 
 <!-- FILTERS -->
@@ -376,6 +391,9 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
       </div>
     </div>
     <div class="chart-wrap" style="height:320px"><canvas id="chartEvolCil"></canvas></div>
+    <div class="tbl-wrap" style="margin-top:12px">
+      <table id="tabla-cil"><thead id="tabla-cil-head"></thead><tbody id="tabla-cil-body"></tbody></table>
+    </div>
   </div>
 
 
@@ -843,6 +861,31 @@ function updateChartEvolCil(filtered, mths, marketTotals) {
       }
     });
   }
+
+  // Tabla de totales por cilindrada (debajo del gráfico)
+  const cHead = document.getElementById('tabla-cil-head');
+  const cBody = document.getElementById('tabla-cil-body');
+  if (cHead && cBody) {
+    const colTotals = mths.map(m => groups.reduce((s, g) => s + g.mths[m], 0));
+    const grand = colTotals.reduce((a, b) => a + b, 0);
+    let h = '<tr><th style="text-align:left">Cilindrada</th>';
+    mths.forEach(m => h += `<th style="text-align:right">${MONTH_LABELS[MONTHS.indexOf(m)]}</th>`);
+    h += '<th style="text-align:right">Total</th></tr>';
+    cHead.innerHTML = h;
+    let b = '';
+    groups.forEach(g => {
+      const rowTot = mths.reduce((s, m) => s + g.mths[m], 0);
+      if (rowTot === 0) return;
+      const color = CIL_COLORS[CIL_ORDER.indexOf(g.cil)] || '#999';
+      b += `<tr><td style="text-align:left;font-weight:600"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${color};margin-right:6px"></span>${g.cil}</td>`;
+      mths.forEach(m => b += `<td style="text-align:right">${g.mths[m].toLocaleString('es-AR')}</td>`);
+      b += `<td style="text-align:right;font-weight:700">${rowTot.toLocaleString('es-AR')}</td></tr>`;
+    });
+    b += '<tr class="total-row"><td style="text-align:left;font-weight:700">TOTAL</td>';
+    mths.forEach((m, i) => b += `<td style="text-align:right">${colTotals[i].toLocaleString('es-AR')}</td>`);
+    b += `<td style="text-align:right">${grand.toLocaleString('es-AR')}</td></tr>`;
+    cBody.innerHTML = b;
+  }
 }
 
 // --- Table ---
@@ -934,14 +977,21 @@ function updateTable(rows, mths) {
     bHTML += `</tr>`;
   });
 
-  // Total row
-  bHTML += `<tr class="total-row"><td style="text-align:center">—</td><td colspan="${hasMarca ? 3 : 1}">TOTAL</td>`;
-  mths.forEach((m, mi) => bHTML += `<td>${grandTotals[mi].toLocaleString('es-AR')}</td>`);
-  bHTML += `<td>${grandTotal.toLocaleString('es-AR')}</td><td>100%</td>`;
-  if (mths.length > 1) bHTML += '<td>—</td>';
-  bHTML += `</tr>`;
+  // Total row — fijada justo debajo del encabezado (sticky). Una celda por
+  // columna fija (sin colspan) para que las reglas sticky caigan donde corresponde
+  let totalHTML = `<tr class="total-row total-pin"><td style="text-align:center">—</td><td>TOTAL</td>`;
+  if (hasMarca) totalHTML += `<td></td><td></td>`;
+  mths.forEach((m, mi) => totalHTML += `<td>${grandTotals[mi].toLocaleString('es-AR')}</td>`);
+  totalHTML += `<td>${grandTotal.toLocaleString('es-AR')}</td><td>100%</td>`;
+  if (mths.length > 1) totalHTML += '<td>—</td>';
+  totalHTML += `</tr>`;
 
-  body.innerHTML = bHTML;
+  // El total va PRIMERO (debajo del thead), luego las filas de datos
+  body.innerHTML = totalHTML + bHTML;
+
+  // Fijar el total justo debajo del encabezado: medir alto del thead
+  const theadH = document.getElementById('tabla-head').offsetHeight;
+  document.documentElement.style.setProperty('--thead-h', theadH + 'px');
 
   document.getElementById('pag-info').textContent = `${(currentPage-1)*PAGE_SIZE+1}–${Math.min(currentPage*PAGE_SIZE, total)} de ${total}`;
   document.getElementById('pag-prev').disabled = currentPage <= 1;
@@ -1020,15 +1070,24 @@ window.addEventListener('load',   setStickyTops);
 window.addEventListener('resize', setStickyTops);
 
 // --- Boot ---
-document.getElementById('last-update').textContent = (function(){
-  if (typeof LAST_UPDATE === 'undefined' || !LAST_UPDATE) return '—';
+(function renderUpdateBanner(){
+  const banner = document.getElementById('update-banner');
+  if (!banner) return;
+  if (typeof LAST_UPDATE === 'undefined' || !LAST_UPDATE) {
+    banner.className = 'update-banner ub-stale';
+    banner.innerHTML = '<span class="ub-icon">🔴</span><div>Sin fecha de actualización</div>';
+    return;
+  }
   const p = LAST_UPDATE.split('/');
-  if (p.length !== 3) return LAST_UPDATE;
   const d = new Date(+p[2], +p[1]-1, +p[0]); d.setHours(0,0,0,0);
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const dias = Math.round((hoy - d) / 86400000);
-  if (dias <= 0) return LAST_UPDATE;
-  return LAST_UPDATE + ' (hace ' + dias + (dias === 1 ? ' día' : ' días') + ')';
+  let cls = 'ub-stale', icon = '🔴';
+  if (dias <= 3)      { cls = 'ub-fresh'; icon = '🟢'; }
+  else if (dias <= 7) { cls = 'ub-mid';   icon = '🟡'; }
+  const hace = dias <= 0 ? 'hoy' : dias === 1 ? 'hace 1 día' : 'hace ' + dias + ' días';
+  banner.className = 'update-banner ' + cls;
+  banner.innerHTML = '<span class="ub-icon">' + icon + '</span><div>Última actualización: ' + LAST_UPDATE + ' (' + hace + ')</div>';
 })();
 
 initFilters();
@@ -1047,7 +1106,7 @@ function onHistoriaLoaded() {
 }
 (function() {
   const s = document.createElement('script');
-  s.src = 'data-historia.js'; s.async = true;
+  s.src = 'https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data-historia.js'; s.async = true;
   document.body.appendChild(s);
 })();
 </script>

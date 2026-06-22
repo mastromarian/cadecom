@@ -12,6 +12,9 @@
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
       auth: { persistSession: true, autoRefreshToken: true }
     });
+    window.sb = sb;                 // expuesto para otras páginas (ej. Base de datos)
+    window.CADECOM_BUCKET = 'cadecom';
+    window.CADECOM_STORAGE = SUPABASE_URL + '/storage/v1/object/public/cadecom/';
   } catch (e) { console.warn('Supabase no disponible:', e && e.message); }
 
   // ── Overlay de login (se inyecta de inmediato para que se vea al instante) ──
@@ -38,6 +41,7 @@
     if (document.body && gate.parentNode !== document.body) document.body.appendChild(gate);
   }
   document.addEventListener('DOMContentLoaded', () => {
+    if (window.__cadecomBypass) return;
     ensureInBody();
     const btn = $('auth-btn'), pass = $('auth-pass');
     if (btn) btn.addEventListener('click', doLogin);
@@ -78,12 +82,19 @@
   }
 
   function adminChip(email) {
+    const slot = document.getElementById('header-user');  // contenedor en el header
     const chip = document.createElement('div');
-    chip.style.cssText = 'position:fixed;top:8px;right:10px;z-index:9000;display:flex;align-items:center;gap:8px;font-size:11px;color:#fff;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:999px;font-family:Arial,sans-serif;';
+    if (slot) {
+      // Dentro del header (misma fila que el banner de actualización)
+      chip.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:11px;color:#fff;font-family:Arial,sans-serif;';
+    } else {
+      // Fallback: pill flotante arriba a la derecha
+      chip.style.cssText = 'position:fixed;top:8px;right:10px;z-index:9000;display:flex;align-items:center;gap:8px;font-size:11px;color:#fff;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:999px;font-family:Arial,sans-serif;';
+    }
     chip.innerHTML = '<span>' + (email || '') + '</span>' +
       '<span style="font-weight:700;background:#fee2e2;color:#b91c1c;padding:1px 7px;border-radius:999px;font-size:10px;">ADMIN</span>' +
       '<button id="chip-logout" style="background:none;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:2px 8px;cursor:pointer;color:#fff;font-size:11px;font-family:inherit;">Salir</button>';
-    document.body.appendChild(chip);
+    (slot || document.body).appendChild(chip);
     chip.querySelector('#chip-logout').addEventListener('click', logout);
   }
 
@@ -115,9 +126,24 @@
   window.cadecomLogout = logout;
 
   async function start() {
+    // Modo local (archivo o localhost): entra sin login para agilizar.
+    // En la web real, login obligatorio.
+    const isLocal = location.protocol === 'file:' ||
+      ['localhost', '127.0.0.1', '::1', ''].includes(location.hostname);
+    if (isLocal) {
+      window.__cadecomBypass = true;
+      gate.remove();
+      const setChip = () => { const slot = document.getElementById('header-user'); if (slot) slot.innerHTML = '<span style="font-size:11px;color:#fff;opacity:.65">modo local</span>'; };
+      if (document.body) setChip(); else document.addEventListener('DOMContentLoaded', setChip);
+      return;
+    }
     if (!sb) { showForm('Falta configurar Supabase'); return; }
     try {
-      const { data: { session } } = await sb.auth.getSession();
+      // timeout defensivo: si getSession se cuelga, mostramos el login igual
+      const session = await Promise.race([
+        sb.auth.getSession().then(r => r.data.session),
+        new Promise(r => setTimeout(() => r(null), 6000))
+      ]);
       if (session) { await enter(); return; }
     } catch (e) { /* sin sesión */ }
     showForm('Ingresá con tu usuario');
