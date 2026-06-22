@@ -43,11 +43,13 @@
   (document.body || document.documentElement).appendChild(gate);
 
   function $(id) { return document.getElementById(id); }
+  let accessGranted = false;   // una vez dado el acceso, NO re-insertar el gate
   function ensureInBody() {
+    if (accessGranted) return;
     if (document.body && gate.parentNode !== document.body) document.body.appendChild(gate);
   }
   document.addEventListener('DOMContentLoaded', () => {
-    if (window.__cadecomBypass) return;
+    if (window.__cadecomBypass || accessGranted) return;
     ensureInBody();
     const btn = $('auth-btn'), pass = $('auth-pass');
     if (btn) btn.addEventListener('click', doLogin);
@@ -124,7 +126,7 @@
     chip.querySelector('#chip-logout').addEventListener('click', logout);
   }
 
-  function grantAccess(email) { gate.remove(); if (document.body) adminChip(email); }
+  function grantAccess(email) { accessGranted = true; gate.remove(); if (document.body) adminChip(email); }
   function blockNonAdmin(email) {
     const slot = document.getElementById('header-user'); if (slot) slot.innerHTML = '';
     (document.body || document.documentElement).appendChild(gate);
@@ -166,6 +168,7 @@
       ['localhost', '127.0.0.1', '::1', ''].includes(location.hostname);
     if (isLocal) {
       window.__cadecomBypass = true;
+      accessGranted = true;
       gate.remove();
       const setChip = () => { const slot = document.getElementById('header-user'); if (slot) slot.innerHTML = '<span style="font-size:11px;color:#fff;opacity:.65">modo local</span>'; };
       if (document.body) setChip(); else document.addEventListener('DOMContentLoaded', setChip);
