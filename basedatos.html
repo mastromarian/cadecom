@@ -92,6 +92,7 @@ header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-trans
 
     <button class="btn" id="btn" disabled>Procesar y subir</button>
     <div class="status" id="status"></div>
+    <a href="#" id="diaglink" style="display:inline-block;margin-top:12px;font-size:11px;color:#9ca3af;text-decoration:underline">diagnóstico</a>
   </div>
 </div>
 
@@ -173,6 +174,23 @@ async function procesar() {
     setBusy(false); status('❌ Error al subir: ' + (e.message || e), 'err');
   }
 }
+
+// Diagnóstico (sin consola): muestra sesión + prueba una subida mínima
+document.getElementById('diaglink').addEventListener('click', async (ev) => {
+  ev.preventDefault();
+  let msg = '';
+  try {
+    const s = window.sb ? (await sb.auth.getSession()).data.session : null;
+    msg = 'Sesión: ' + (s ? (s.user.email + '  ·  role=' + s.user.role + '  ·  token=' + (s.access_token ? 'sí' : 'no')) : 'NINGUNA');
+    if (window.sb) {
+      const t = await sb.storage.from(BUCKET).upload('diag_' + Date.now() + '.txt', new Blob(['x']), { upsert: true });
+      msg += '\nPrueba subir .txt: ' + (t.error ? ('ERROR → ' + t.error.message) : 'OK ✓');
+    } else {
+      msg += '\n(sin cliente Supabase)';
+    }
+  } catch (e) { msg += '\nExcepción: ' + e.message; }
+  status(msg, 'info');
+});
 </script>
 </body>
 </html>
