@@ -10,7 +10,13 @@
   let sb = null;
   try {
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-      auth: { persistSession: true, autoRefreshToken: true }
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        // Desactiva el "Web Locks" de supabase-js que a veces se traba entre
+        // recargas y deja la app colgada en "Verificando sesión…".
+        lock: async (name, acquireTimeout, fn) => await fn()
+      }
     });
     window.sb = sb;                 // expuesto para otras páginas (ej. Base de datos)
     window.CADECOM_BUCKET = 'cadecom';
