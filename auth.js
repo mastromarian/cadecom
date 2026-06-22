@@ -124,10 +124,17 @@
     chip.querySelector('#chip-logout').addEventListener('click', logout);
   }
 
+  function grantAccess(email) { gate.remove(); if (document.body) adminChip(email); }
+  function blockNonAdmin(email) {
+    const slot = document.getElementById('header-user'); if (slot) slot.innerHTML = '';
+    (document.body || document.documentElement).appendChild(gate);
+    denyView(email);
+  }
+
   async function enter(sess) {
     const u = await loadRole(sess);
     if (!u) { showForm('Ingresá con tu usuario'); return; }
-    if (u.role === 'admin') { gate.remove(); if (document.body) adminChip(u.email); return; }
+    if (u.role === 'admin') { grantAccess(u.email); return; }
     if (!u.ok) { showForm('Tu sesión expiró. Ingresá de nuevo.'); return; }  // consulta falló → re-login
     denyView(u.email);                                                       // lectura genuino → bloqueado
   }
@@ -165,18 +172,18 @@
       return;
     }
     if (!sb) { showForm('Falta configurar Supabase'); return; }
-    // Lectura directa (instantánea) de la sesión guardada → sin cuelgues, y
-    // mantiene la sesión entre visitas (no pide login cada vez).
+    // Lectura directa (instantánea) de la sesión guardada, SIN tocar la red.
+    // Si hay sesión → entramos YA y validamos el rol en segundo plano.
+    // (Esperar la red era la causa del cuelgue, porque los 30MB de datos la saturan.)
     const sess = getStoredSession();
     if (!sess) { showForm('Ingresá con tu usuario'); return; }
-    // Si ya sabemos que es admin (cache), entramos AL INSTANTE y re-verificamos atrás.
-    if (localStorage.getItem('cadecom_role') === 'admin') {
-      gate.remove();
-      if (document.body) adminChip(sess.user.email);
-      loadRole(sess).then(u => { if (u && u.ok && u.role !== 'admin') location.reload(); });
-      return;
-    }
-    await enter(sess);
+    grantAccess(sess.user.email);
+    loadRole(sess).then(u => {
+      if (u && u.ok && u.role !== 'admin') {  // confirmado NO admin → bloquear
+        localStorage.removeItem('cadecom_role');
+        blockNonAdmin(u.email);
+      }
+    });
   }
   start();
 })();
