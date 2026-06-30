@@ -174,7 +174,8 @@ header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-trans
         <div class="moto-toolbar">
           <input type="text" class="moto-search" id="moto-search" placeholder="Buscar marca, modelo o cilindrada…" oninput="filterModelos()">
           <span class="moto-count" id="moto-count"></span>
-          <button class="btn-sm btn-save" style="margin:0" onclick="openModal()">+ Agregar</button>
+          <button class="btn-sm btn-edit" id="btn-sin" style="margin:0" onclick="toggleSinAsignar()">Sin asignar</button>
+          <button class="btn-sm btn-save" id="btn-agregar" style="margin:0" onclick="openModal()">+ Agregar</button>
           <button class="btn-sm btn-save" id="btn-guardar-moto" style="margin:0;display:none" onclick="guardarModelos()">Guardar cambios</button>
         </div>
 
@@ -207,7 +208,7 @@ header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-trans
     </div>
     <div class="form-row">
       <label>Cilindrada</label>
-      <input type="text" id="m-cil" placeholder="ej. 125cc">
+      <select id="m-cil" style="width:100%;padding:8px 10px;border:1px solid #d6deea;border-radius:7px;font-size:13px;font-family:inherit;background:#fff"></select>
     </div>
     <div class="modal-actions">
       <button class="btn-sm btn-cancel" style="padding:8px 16px" onclick="closeModal()">Cancelar</button>
@@ -329,6 +330,9 @@ const PAGE_SIZE = 50;
 let currentPage = 0;
 let modalEditIdx = null;  // null = agregar, número = editar
 let loadedFingerprint = null; // huella del BD_Motos.xlsx al momento de cargarlo (para detectar pisadas)
+let viewSin = false;      // true = mostrando modelos "Sin asignar" (SIN MARCA en los datos)
+let sinList = [];         // nombres exactos de modelos SIN MARCA presentes en los datos
+let modalLockName = false; // true = el nombre del modelo viene fijo (desde "Sin asignar")
 
 // Huella simple del contenido (tamaño + hash rápido de los bytes)
 function fingerprint(buf) {
@@ -361,14 +365,63 @@ async function loadModelos() {
     })).filter(r => r.Modelo);
     document.getElementById('moto-loading').style.display = 'none';
     document.getElementById('moto-editor').style.display  = '';
+    buildCilOptions();
     filterModelos();
   } catch (e) {
     document.getElementById('moto-loading').textContent = '❌ No se pudo cargar BD_Motos.xlsx: ' + e.message;
   }
 }
 
+// Poblar el desplegable de cilindradas con las opciones existentes
+function buildCilOptions() {
+  const sel = document.getElementById('m-cil');
+  const cils = [...new Set(allModelos.map(r => r.Cilindrada).filter(c => c))]
+    .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+  sel.innerHTML = '<option value="">— Elegí una cilindrada —</option>' +
+    cils.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+
+// Modelos que el dashboard tiene como SIN MARCA y que NO están todavía en el catálogo
+function buildSinList() {
+  if (typeof RAW_DATA === 'undefined') return [];
+  const enCatalogo = new Set(allModelos.filter(r => !deletedSet.has(r._idx)).map(r => CadecomBuild.norm(r.Modelo)));
+  const vistos = new Set(), out = [];
+  RAW_DATA.forEach(r => {
+    if (r.marca === 'SIN MARCA') {
+      const k = CadecomBuild.norm(r.modelo);
+      if (!enCatalogo.has(k) && !vistos.has(k)) { vistos.add(k); out.push(r.modelo); }
+    }
+  });
+  return out.sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+function toggleSinAsignar() {
+  viewSin = !viewSin;
+  const b = document.getElementById('btn-sin');
+  if (viewSin) {
+    sinList = buildSinList();
+    b.classList.remove('btn-edit'); b.classList.add('btn-del');
+    b.textContent = '← Volver al catálogo';
+    document.getElementById('btn-agregar').style.display = 'none';
+  } else {
+    b.classList.remove('btn-del'); b.classList.add('btn-edit');
+    b.textContent = 'Sin asignar';
+    document.getElementById('btn-agregar').style.display = '';
+  }
+  document.getElementById('moto-search').value = '';
+  filterModelos();
+}
+
 function filterModelos() {
   const q = document.getElementById('moto-search').value.trim().toUpperCase();
+
+  if (viewSin) {
+    filtered = (q ? sinList.filter(m => m.toUpperCase().includes(q)) : sinList).map(m => ({ _sin: m }));
+    currentPage = 0;
+    renderTable();
+    return;
+  }
+
   filtered = q
     ? allModelos.filter(r => !deletedSet.has(r._idx) && (
         r.Marca.toUpperCase().includes(q) ||
@@ -384,6 +437,28 @@ function renderTable() {
   const start = currentPage * PAGE_SIZE;
   const page  = filtered.slice(start, start + PAGE_SIZE);
   const q     = document.getElementById('moto-search').value.trim().toUpperCase();
+
+  if (viewSin) {
+    document.getElementById('moto-count').textContent =
+      total.toLocaleString('es-AR') + ' sin asignar' + (q ? ' (filtrado)' : '') +
+      (dirtySet.size ? ' · ' + dirtySet.size + ' por guardar' : '');
+    const tb = document.getElementById('moto-tbody');
+    tb.innerHTML = '';
+    page.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td style="color:#b3000f;font-weight:700">SIN MARCA</td>` +
+        `<td>${esc(r._sin)}</td>` +
+        `<td style="color:#9ca3af">—</td>` +
+        `<td><div class="td-actions">
+          <button class="btn-sm btn-save" onclick="asignarSin('${esc(r._sin).replace(/'/g, "\\'")}')">Asignar</button>
+        </div></td>`;
+      tb.appendChild(tr);
+    });
+    renderPagination(total);
+    updateDirtyBadge();
+    return;
+  }
 
   document.getElementById('moto-count').textContent =
     total.toLocaleString('es-AR') + ' modelo' + (total !== 1 ? 's' : '') +
@@ -491,9 +566,25 @@ function deleteRow(idx) {
   filterModelos();
 }
 
+// Asignar marca a un modelo SIN MARCA (nombre exacto, no editable)
+function asignarSin(modelo) {
+  modalEditIdx = null;
+  modalLockName = true;
+  document.getElementById('modal-title').textContent = 'Asignar marca';
+  document.getElementById('m-marca').value  = '';
+  const mm = document.getElementById('m-modelo');
+  mm.value = modelo; mm.readOnly = true; mm.style.background = '#f0f3f8'; mm.style.color = '#64748b';
+  document.getElementById('m-cil').value = '';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('m-marca').focus(), 50);
+}
+
 // Modal
 function openModal(editIdx) {
   modalEditIdx = editIdx != null ? editIdx : null;
+  modalLockName = false;
+  const mm = document.getElementById('m-modelo');
+  mm.readOnly = false; mm.style.background = ''; mm.style.color = '';
   if (modalEditIdx != null) {
     const r = allModelos.find(x => x._idx === modalEditIdx);
     document.getElementById('modal-title').textContent = 'Editar modelo';
@@ -517,6 +608,7 @@ function confirmarModal() {
   const modelo = document.getElementById('m-modelo').value.trim();
   const cil    = document.getElementById('m-cil').value.trim();
   if (!modelo) { alert('El modelo no puede estar vacío.'); return; }
+  if (!marca)  { alert('Elegí o escribí la marca.'); return; }
 
   if (modalEditIdx != null) {
     const r = allModelos.find(x => x._idx === modalEditIdx);
@@ -526,6 +618,11 @@ function confirmarModal() {
     const newIdx = allModelos.length;
     allModelos.push({ Marca: marca, Modelo: modelo, Cilindrada: cil, _idx: newIdx });
     dirtySet.add(newIdx);
+    // Si veníamos de "Sin asignar", sacar este modelo de la lista pendiente
+    if (modalLockName) {
+      const k = CadecomBuild.norm(modelo);
+      sinList = sinList.filter(m => CadecomBuild.norm(m) !== k);
+    }
   }
   closeModal();
   filterModelos();
@@ -573,8 +670,37 @@ async function guardarModelos() {
 
     loadedFingerprint = fingerprint(xlsBuf);  // ahora esta es la versión vigente
     dirtySet.clear(); deletedSet.clear();
+
+    // Re-aplicar los modelos a TODA la base para que el dashboard refleje los cambios
+    if (typeof RAW_DATA === 'undefined' || typeof RAW_DATA_HIST === 'undefined') {
+      btnG.disabled = false;
+      motoStatus('✅ Modelos guardados, pero la base completa todavía se está cargando. ' +
+        'Esperá unos segundos y volvé a tocar "Guardar cambios" para aplicarlos al dashboard.', 'err');
+      filterModelos();
+      return;
+    }
+
+    motoStatus('⏳ Aplicando los modelos a toda la base… (puede tardar ~20s, no cierres la pestaña)', 'info');
+    await new Promise(r => setTimeout(r, 60));
+
+    const geo = await (await fetch(STORAGE + 'BD_Geo.xlsx')).arrayBuffer();
+    const maps = CadecomBuild.loadGeoMotos(geo, xlsBuf);
+    const records = CadecomBuild.recordsFromRawData(RAW_DATA);
+    const out = CadecomBuild.generate(records, maps);
+
+    motoStatus('⏳ Guardando data.js…', 'info');
+    let u2 = await sb.storage.from(BUCKET).upload('data.js', new Blob([out.dataJs], { type: 'application/javascript' }),
+      { upsert: true, cacheControl: '60' });
+    if (u2.error) throw new Error('data.js: ' + u2.error.message);
+
+    motoStatus('⏳ Guardando data-historia.js…', 'info');
+    u2 = await sb.storage.from(BUCKET).upload('data-historia.js', new Blob([out.historiaJs], { type: 'application/javascript' }),
+      { upsert: true, cacheControl: '60' });
+    if (u2.error) throw new Error('data-historia.js: ' + u2.error.message);
+
     btnG.disabled = false;
-    motoStatus('✅ BD_Motos.xlsx guardado. ' + rows.length.toLocaleString('es-AR') + ' modelos.', 'ok');
+    motoStatus('✅ Listo. ' + rows.length.toLocaleString('es-AR') + ' modelos guardados y aplicados a toda la base. ' +
+      'El dashboard ya refleja las marcas/cilindradas nuevas (puede tardar ~1 min en propagarse).', 'ok');
     filterModelos();
   } catch (e) {
     btnG.disabled = false;
