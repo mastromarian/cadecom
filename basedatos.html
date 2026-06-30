@@ -21,7 +21,7 @@ header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-trans
   color: #9ca3af; text-decoration: none; white-space: nowrap; transition: color .15s, background .15s; }
 .nav-item:hover { color: #fff; }
 .nav-item.active { color: #fff; background: #e3000f; }
-.main { max-width: 760px; margin: 24px auto; padding: 0 20px; }
+.main { max-width: 860px; margin: 24px auto; padding: 0 20px; }
 .card { background: #fff; border-radius: 10px; padding: 22px 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 18px; }
 .card h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1F3864; margin-bottom: 6px; }
 .card .sub { font-size: 12px; color: #64748b; margin-bottom: 16px; line-height: 1.5; }
@@ -33,13 +33,20 @@ header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-trans
 .btn { margin-top: 14px; padding: 11px 18px; background: #2E5FA3; color: #fff; border: none; border-radius: 8px;
   font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-sm { padding: 5px 10px; font-size: 12px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; }
+.btn-edit { background: #eef3fb; color: #2E5FA3; }
+.btn-edit:hover { background: #dde8f7; }
+.btn-del  { background: #fdeaea; color: #b3000f; }
+.btn-del:hover  { background: #fbd5d5; }
+.btn-save { background: #137a36; color: #fff; }
+.btn-save:hover { background: #0f6029; }
+.btn-cancel { background: #f0f3f8; color: #64748b; }
+.btn-cancel:hover { background: #e2e8f0; }
 .status { margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; display: none; white-space: pre-wrap; }
 .status.show { display: block; }
 .status.ok  { background: #e9f9ee; color: #137a36; border: 1px solid #34c759; }
 .status.err { background: #fdeaea; color: #b3000f; border: 1px solid #ff3b30; }
 .status.info{ background: #eaf1fb; color: #1F3864; border: 1px solid #9DC3E6; }
-.rules { font-size: 12px; color: #64748b; line-height: 1.6; margin-top: 14px; padding-top: 14px; border-top: 1px solid #eef; }
-.rules b { color: #1F3864; }
 /* Guía de descarga */
 .guia { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 16px; margin-top: 4px; }
 .g-field { display: flex; flex-direction: column; gap: 4px; }
@@ -48,6 +55,56 @@ header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-trans
 .g-val.hl { background: #fdeaea; border-color: #f0b4b4; color: #b3000f; font-weight: 700; }
 .g-val.var { background: #fff7cc; border-color: #f0d96b; color: #8a6d00; font-weight: 700; }
 @media (max-width: 620px) { .guia { grid-template-columns: 1fr; } }
+/* Tabs internas */
+.inner-tabs { display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; }
+.itab { padding: 8px 20px; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer;
+  border: none; background: none; border-bottom: 3px solid transparent; margin-bottom: -2px;
+  font-family: inherit; transition: color .15s; }
+.itab.active { color: #1F3864; border-bottom-color: #2E5FA3; }
+.itab:hover:not(.active) { color: #1a1a2e; }
+/* Modelos */
+.moto-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.moto-search { flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid #d6deea; border-radius: 8px;
+  font-size: 13px; font-family: inherit; outline: none; }
+.moto-search:focus { border-color: #2E5FA3; }
+.moto-count { font-size: 12px; color: #64748b; white-space: nowrap; }
+.moto-table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 14px; }
+.moto-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.moto-table th { background: #1F3864; color: #fff; padding: 8px 10px; text-align: left; font-size: 11px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+.moto-table td { padding: 6px 10px; border-bottom: 1px solid #f0f3f8; vertical-align: middle; }
+.moto-table tr:last-child td { border-bottom: none; }
+.moto-table tr:hover td { background: #f7f9fd; }
+.moto-table tr.editing td { background: #fffbe6; }
+.moto-table tr.dirty td { background: #f0fbf3; }
+.moto-table tr.deleted td { background: #fdeaea; opacity: .6; }
+.td-actions { white-space: nowrap; display: flex; gap: 5px; }
+.ed-input { width: 100%; padding: 4px 7px; border: 1px solid #9DC3E6; border-radius: 5px;
+  font-size: 12.5px; font-family: inherit; background: #fff; }
+.ed-input:focus { outline: none; border-color: #2E5FA3; }
+.pagination { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 8px; }
+.pg-btn { padding: 5px 10px; border: 1px solid #d6deea; border-radius: 6px; cursor: pointer; background: #fff;
+  font-size: 12px; font-family: inherit; }
+.pg-btn:hover { background: #eef3fb; }
+.pg-btn.active { background: #2E5FA3; color: #fff; border-color: #2E5FA3; }
+.pg-btn:disabled { opacity: .4; cursor: default; }
+/* Modal para agregar */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 500; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 12px; padding: 24px; width: 380px; max-width: 95vw; box-shadow: 0 8px 30px rgba(0,0,0,.2); }
+.modal h3 { font-size: 15px; font-weight: 700; color: #1F3864; margin-bottom: 16px; }
+.form-row { margin-bottom: 12px; }
+.form-row label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #64748b; margin-bottom: 4px; }
+.form-row input { width: 100%; padding: 8px 10px; border: 1px solid #d6deea; border-radius: 7px; font-size: 13px; font-family: inherit; }
+.form-row input:focus { outline: none; border-color: #2E5FA3; }
+.modal-actions { display: flex; gap: 8px; margin-top: 18px; justify-content: flex-end; }
+.moto-status { margin-bottom: 14px; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none; }
+.moto-status.show { display: block; }
+.moto-status.ok  { background: #e9f9ee; color: #137a36; border: 1px solid #34c759; }
+.moto-status.err { background: #fdeaea; color: #b3000f; border: 1px solid #ff3b30; }
+.moto-status.info{ background: #eaf1fb; color: #1F3864; border: 1px solid #9DC3E6; }
+.dirty-badge { display: inline-block; background: #e3000f; color: #fff; border-radius: 10px;
+  font-size: 10px; font-weight: 700; padding: 1px 6px; margin-left: 6px; }
 </style>
 </head>
 <body>
@@ -64,39 +121,112 @@ header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-trans
 </nav>
 
 <div class="main">
-  <div class="card">
-    <h2>Cómo descargar el archivo de Cadecom</h2>
-    <ul class="sub" style="padding-left:18px;list-style:disc;margin-top:4px">
-      <li>En la web de <a href="https://estadisticas.cadecom.org.ar/" target="_blank" rel="noopener" style="color:#2E5FA3;font-weight:700;text-decoration:underline">Cadecom</a>, generá el reporte con esta configuración. Con otro formato no permite actualizar.</li>
-      <li>Los campos <b style="color:#b3000f">resaltados en rojo</b> tienen que ser exactamente esos.</li>
-      <li><b style="color:#8a6d00">Fecha hasta</b> varía según el período.</li>
-    </ul>
-    <div class="guia">
-      <div class="g-field"><span class="g-lbl">Fecha desde</span><span class="g-val hl">01/01/AAAA (1° de enero)</span></div>
-      <div class="g-field"><span class="g-lbl">Fecha hasta</span><span class="g-val var">fin del período (ej. 30/06/2026)</span></div>
-      <div class="g-field"><span class="g-lbl">Agrupador principal</span><span class="g-val hl">Localidad</span></div>
-      <div class="g-field"><span class="g-lbl">Agrupador adicional</span><span class="g-val hl">Modelo</span></div>
-      <div class="g-field"><span class="g-lbl">Formato</span><span class="g-val hl">Período</span></div>
-      <div class="g-field"><span class="g-lbl">Filas por página</span><span class="g-val">cualquiera</span></div>
+  <div class="inner-tabs">
+    <button class="itab active" id="itab-datos" onclick="switchTab('datos')">Actualizar datos</button>
+    <button class="itab" id="itab-modelos" onclick="switchTab('modelos')">Modelos <span class="dirty-badge" id="dirty-badge" style="display:none">0</span></button>
+  </div>
+
+  <!-- ═══════ TAB: ACTUALIZAR DATOS ═══════ -->
+  <div id="tab-datos">
+    <div class="card">
+      <h2>Cómo descargar el archivo de Cadecom</h2>
+      <ul class="sub" style="padding-left:18px;list-style:disc;margin-top:4px">
+        <li>En la web de <a href="https://estadisticas.cadecom.org.ar/" target="_blank" rel="noopener" style="color:#2E5FA3;font-weight:700;text-decoration:underline">Cadecom</a>, generá el reporte con esta configuración. Con otro formato no permite actualizar.</li>
+        <li>Los campos <b style="color:#b3000f">resaltados en rojo</b> tienen que ser exactamente esos.</li>
+        <li><b style="color:#8a6d00">Fecha hasta</b> varía según el período.</li>
+      </ul>
+      <div class="guia">
+        <div class="g-field"><span class="g-lbl">Fecha desde</span><span class="g-val hl">01/01/AAAA (1° de enero)</span></div>
+        <div class="g-field"><span class="g-lbl">Fecha hasta</span><span class="g-val var">fin del período (ej. 30/06/2026)</span></div>
+        <div class="g-field"><span class="g-lbl">Agrupador principal</span><span class="g-val hl">Localidad</span></div>
+        <div class="g-field"><span class="g-lbl">Agrupador adicional</span><span class="g-val hl">Modelo</span></div>
+        <div class="g-field"><span class="g-lbl">Formato</span><span class="g-val hl">Período</span></div>
+        <div class="g-field"><span class="g-lbl">Filas por página</span><span class="g-val">cualquiera</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Subir archivo</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".xlsx">
+        <div>📄 Hacé clic para elegir el archivo <b>.xlsx</b></div>
+        <div class="fname" id="fname"></div>
+      </label>
+      <button class="btn" id="btn" disabled>Procesar y subir</button>
+      <div class="status" id="status"></div>
+      <a href="#" id="diaglink" style="display:inline-block;margin-top:12px;font-size:11px;color:#9ca3af;text-decoration:underline">diagnóstico</a>
     </div>
   </div>
 
-  <div class="card">
-    <h2>Subir archivo</h2>
+  <!-- ═══════ TAB: MODELOS ═══════ -->
+  <div id="tab-modelos" style="display:none">
+    <div class="card">
+      <h2>Gestión de modelos</h2>
+      <p class="sub">Editá la tabla de modelos (Marca, Modelo, Cilindrada). Los cambios se guardan en la nube y se aplican en la próxima actualización de datos.</p>
 
-    <label class="drop" id="drop">
-      <input type="file" id="file" accept=".xlsx">
-      <div>📄 Hacé clic para elegir el archivo <b>.xlsx</b></div>
-      <div class="fname" id="fname"></div>
-    </label>
+      <div id="moto-status" class="moto-status"></div>
 
-    <button class="btn" id="btn" disabled>Procesar y subir</button>
-    <div class="status" id="status"></div>
-    <a href="#" id="diaglink" style="display:inline-block;margin-top:12px;font-size:11px;color:#9ca3af;text-decoration:underline">diagnóstico</a>
+      <div id="moto-loading" style="color:#64748b;font-size:13px;padding:20px 0;text-align:center">
+        Cargando modelos…
+      </div>
+
+      <div id="moto-editor" style="display:none">
+        <div class="moto-toolbar">
+          <input type="text" class="moto-search" id="moto-search" placeholder="Buscar marca, modelo o cilindrada…" oninput="filterModelos()">
+          <span class="moto-count" id="moto-count"></span>
+          <button class="btn-sm btn-save" style="margin:0" onclick="openModal()">+ Agregar</button>
+          <button class="btn-sm btn-save" id="btn-guardar-moto" style="margin:0;display:none" onclick="guardarModelos()">Guardar cambios</button>
+        </div>
+
+        <div class="moto-table-wrap">
+          <table class="moto-table" id="moto-table">
+            <thead><tr>
+              <th>Marca</th><th>Modelo</th><th>Cilindrada</th><th style="width:110px">Acciones</th>
+            </tr></thead>
+            <tbody id="moto-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination" id="moto-pag"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal agregar modelo -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Agregar modelo</h3>
+    <div class="form-row">
+      <label>Marca</label>
+      <input type="text" id="m-marca" placeholder="ej. YAMAHA">
+    </div>
+    <div class="form-row">
+      <label>Modelo</label>
+      <input type="text" id="m-modelo" placeholder="ej. YBR 125">
+    </div>
+    <div class="form-row">
+      <label>Cilindrada</label>
+      <input type="text" id="m-cil" placeholder="ej. 125cc">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-cancel" style="padding:8px 16px" onclick="closeModal()">Cancelar</button>
+      <button class="btn-sm btn-save" style="padding:8px 16px" onclick="confirmarModal()">Guardar</button>
+    </div>
   </div>
 </div>
 
 <script>
+// ════════════ TABS ════════════
+function switchTab(t) {
+  document.getElementById('tab-datos').style.display    = t === 'datos'    ? '' : 'none';
+  document.getElementById('tab-modelos').style.display  = t === 'modelos'  ? '' : 'none';
+  document.getElementById('itab-datos').classList.toggle('active',   t === 'datos');
+  document.getElementById('itab-modelos').classList.toggle('active', t === 'modelos');
+  if (t === 'modelos' && !motosLoaded) loadModelos();
+}
+
+// ════════════ ACTUALIZAR DATOS (lógica original) ════════════
 const STORAGE = 'https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/';
 const BUCKET = 'cadecom';
 const drop = document.getElementById('drop'), fileInput = document.getElementById('file');
@@ -122,11 +252,11 @@ async function procesar() {
   try {
     const buf = await chosen.arrayBuffer();
     setBusy(true, '⏳ Bajando BD_Geo y BD_Motos…');
-    const geo = await (await fetch(STORAGE + 'BD_Geo.xlsx')).arrayBuffer();
+    const geo   = await (await fetch(STORAGE + 'BD_Geo.xlsx')).arrayBuffer();
     const motos = await (await fetch(STORAGE + 'BD_Motos.xlsx')).arrayBuffer();
 
     setBusy(true, '⏳ Validando y reprocesando… (puede tardar ~20s, no cierres la pestaña)');
-    await new Promise(r => setTimeout(r, 60));  // dejar pintar el mensaje
+    await new Promise(r => setTimeout(r, 60));
 
     let res;
     try {
@@ -140,7 +270,6 @@ async function procesar() {
       if (!ok) { setBusy(false); status('Cancelado.', 'err'); return; }
     }
 
-    // En modo local no hay sesión: validamos/procesamos pero no guardamos en la nube
     if (window.__cadecomBypass) {
       setBusy(false);
       status('✅ Archivo VÁLIDO (año ' + res.year + ', ' + res.stats.primerMes + ' a ' + res.stats.ultimoMes + ').\n' +
@@ -148,13 +277,11 @@ async function procesar() {
       return;
     }
 
-    // 1) Guardar el Excel del año (nombre fijo => reemplaza el previo)
     setBusy(true, '⏳ Guardando el archivo en la nube…');
     let up = await sb.storage.from(BUCKET).upload('localidad-modelo/' + res.year + '.xlsx', chosen,
       { upsert: true, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     if (up.error) throw new Error('Storage (excel): ' + up.error.message);
 
-    // 2) Guardar data.js y data-historia.js regenerados
     setBusy(true, '⏳ Guardando data.js…');
     up = await sb.storage.from(BUCKET).upload('data.js', new Blob([res.dataJs], { type: 'application/javascript' }),
       { upsert: true, cacheControl: '60' });
@@ -175,7 +302,6 @@ async function procesar() {
   }
 }
 
-// Diagnóstico (sin consola): muestra sesión + prueba una subida mínima
 document.getElementById('diaglink').addEventListener('click', async (ev) => {
   ev.preventDefault();
   let msg = '';
@@ -190,6 +316,281 @@ document.getElementById('diaglink').addEventListener('click', async (ev) => {
     }
   } catch (e) { msg += '\nExcepción: ' + e.message; }
   status(msg, 'info');
+});
+
+// ════════════ GESTIÓN DE MODELOS ════════════
+let motosLoaded = false;
+let allModelos = [];      // [{Marca, Modelo, Cilindrada, _idx}]  _idx = posición original
+let filtered   = [];      // subset después de búsqueda
+let dirtySet   = new Set(); // índices con cambios
+let deletedSet = new Set(); // índices marcados para borrar
+let editingIdx = null;    // _idx de la fila en edición inline
+const PAGE_SIZE = 50;
+let currentPage = 0;
+let modalEditIdx = null;  // null = agregar, número = editar
+let loadedFingerprint = null; // huella del BD_Motos.xlsx al momento de cargarlo (para detectar pisadas)
+
+// Huella simple del contenido (tamaño + hash rápido de los bytes)
+function fingerprint(buf) {
+  const b = new Uint8Array(buf);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < b.length; i++) { h ^= b[i]; h = (h * 0x01000193) >>> 0; }
+  return b.length + ':' + h.toString(16);
+}
+
+function motoStatus(msg, kind) {
+  const el = document.getElementById('moto-status');
+  el.className = 'moto-status show ' + (kind || 'info');
+  el.textContent = msg;
+  if (kind === 'ok') setTimeout(() => { el.className = 'moto-status'; }, 4000);
+}
+
+async function loadModelos() {
+  motosLoaded = true;
+  try {
+    const buf = await (await fetch(STORAGE + 'BD_Motos.xlsx?t=' + Date.now())).arrayBuffer();
+    loadedFingerprint = fingerprint(buf);
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets['Consulta'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    allModelos = rows.map((r, i) => ({
+      Marca:      String(r['Marca']      || r['marca']      || '').trim(),
+      Modelo:     String(r['Modelo']     || r['modelo']     || '').trim(),
+      Cilindrada: String(r['Cilindrada'] || r['cilindrada'] || '').trim(),
+      _idx: i
+    })).filter(r => r.Modelo);
+    document.getElementById('moto-loading').style.display = 'none';
+    document.getElementById('moto-editor').style.display  = '';
+    filterModelos();
+  } catch (e) {
+    document.getElementById('moto-loading').textContent = '❌ No se pudo cargar BD_Motos.xlsx: ' + e.message;
+  }
+}
+
+function filterModelos() {
+  const q = document.getElementById('moto-search').value.trim().toUpperCase();
+  filtered = q
+    ? allModelos.filter(r => !deletedSet.has(r._idx) && (
+        r.Marca.toUpperCase().includes(q) ||
+        r.Modelo.toUpperCase().includes(q) ||
+        r.Cilindrada.toUpperCase().includes(q)))
+    : allModelos.filter(r => !deletedSet.has(r._idx));
+  currentPage = 0;
+  renderTable();
+}
+
+function renderTable() {
+  const total = filtered.length;
+  const start = currentPage * PAGE_SIZE;
+  const page  = filtered.slice(start, start + PAGE_SIZE);
+  const q     = document.getElementById('moto-search').value.trim().toUpperCase();
+
+  document.getElementById('moto-count').textContent =
+    total.toLocaleString('es-AR') + ' modelo' + (total !== 1 ? 's' : '') +
+    (q ? ' (filtrado)' : '') +
+    (dirtySet.size || deletedSet.size ? ' · ' + (dirtySet.size + deletedSet.size) + ' cambio' + (dirtySet.size + deletedSet.size !== 1 ? 's' : '') + ' pendiente' + (dirtySet.size + deletedSet.size !== 1 ? 's' : '') : '');
+
+  const tbody = document.getElementById('moto-tbody');
+  tbody.innerHTML = '';
+  page.forEach(r => {
+    const isDirty = dirtySet.has(r._idx);
+    const isEditing = editingIdx === r._idx;
+    const tr = document.createElement('tr');
+    if (isDirty)   tr.className = 'dirty';
+    if (isEditing) tr.className = 'editing';
+
+    if (isEditing) {
+      tr.innerHTML =
+        `<td><input class="ed-input" id="ed-marca"  value="${esc(r.Marca)}"></td>` +
+        `<td><input class="ed-input" id="ed-modelo" value="${esc(r.Modelo)}"></td>` +
+        `<td><input class="ed-input" id="ed-cil"    value="${esc(r.Cilindrada)}"></td>` +
+        `<td><div class="td-actions">
+          <button class="btn-sm btn-save"   onclick="saveInline(${r._idx})">✓</button>
+          <button class="btn-sm btn-cancel" onclick="cancelInline()">✕</button>
+        </div></td>`;
+    } else {
+      tr.innerHTML =
+        `<td>${esc(r.Marca)}</td>` +
+        `<td>${esc(r.Modelo)}</td>` +
+        `<td>${esc(r.Cilindrada)}</td>` +
+        `<td><div class="td-actions">
+          <button class="btn-sm btn-edit" onclick="startEdit(${r._idx})">Editar</button>
+          <button class="btn-sm btn-del"  onclick="deleteRow(${r._idx})">Eliminar</button>
+        </div></td>`;
+    }
+    tbody.appendChild(tr);
+  });
+
+  renderPagination(total);
+  updateDirtyBadge();
+}
+
+function renderPagination(total) {
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const pag = document.getElementById('moto-pag');
+  pag.innerHTML = '';
+  if (pages <= 1) return;
+
+  const addBtn = (label, page, disabled, active) => {
+    const b = document.createElement('button');
+    b.className = 'pg-btn' + (active ? ' active' : '');
+    b.textContent = label;
+    b.disabled = disabled;
+    if (!disabled && !active) b.onclick = () => { currentPage = page; renderTable(); };
+    pag.appendChild(b);
+  };
+
+  addBtn('‹', currentPage - 1, currentPage === 0, false);
+  const start = Math.max(0, currentPage - 2), end = Math.min(pages - 1, currentPage + 2);
+  if (start > 0) { addBtn('1', 0, false, false); if (start > 1) { const sp = document.createElement('span'); sp.textContent = '…'; sp.style.padding = '0 4px'; pag.appendChild(sp); } }
+  for (let i = start; i <= end; i++) addBtn(i + 1, i, false, i === currentPage);
+  if (end < pages - 1) { if (end < pages - 2) { const sp = document.createElement('span'); sp.textContent = '…'; sp.style.padding = '0 4px'; pag.appendChild(sp); } addBtn(pages, pages - 1, false, false); }
+  addBtn('›', currentPage + 1, currentPage >= pages - 1, false);
+}
+
+function updateDirtyBadge() {
+  const n = dirtySet.size + deletedSet.size;
+  const badge = document.getElementById('dirty-badge');
+  const btnG  = document.getElementById('btn-guardar-moto');
+  badge.textContent = n;
+  badge.style.display = n ? '' : 'none';
+  btnG.style.display  = n ? '' : 'none';
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function startEdit(idx) {
+  editingIdx = idx;
+  renderTable();
+  // scroll to top of table
+  document.getElementById('moto-table').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function saveInline(idx) {
+  const r = allModelos.find(x => x._idx === idx);
+  if (!r) return;
+  const marca  = document.getElementById('ed-marca').value.trim();
+  const modelo = document.getElementById('ed-modelo').value.trim();
+  const cil    = document.getElementById('ed-cil').value.trim();
+  if (!modelo) { alert('El modelo no puede estar vacío.'); return; }
+  r.Marca = marca; r.Modelo = modelo; r.Cilindrada = cil;
+  dirtySet.add(idx);
+  editingIdx = null;
+  filterModelos();
+}
+
+function cancelInline() { editingIdx = null; renderTable(); }
+
+function deleteRow(idx) {
+  const r = allModelos.find(x => x._idx === idx);
+  if (!r) return;
+  if (!confirm('¿Eliminar "' + r.Modelo + '"?')) return;
+  deletedSet.add(idx);
+  dirtySet.delete(idx);
+  if (editingIdx === idx) editingIdx = null;
+  filterModelos();
+}
+
+// Modal
+function openModal(editIdx) {
+  modalEditIdx = editIdx != null ? editIdx : null;
+  if (modalEditIdx != null) {
+    const r = allModelos.find(x => x._idx === modalEditIdx);
+    document.getElementById('modal-title').textContent = 'Editar modelo';
+    document.getElementById('m-marca').value  = r.Marca;
+    document.getElementById('m-modelo').value = r.Modelo;
+    document.getElementById('m-cil').value    = r.Cilindrada;
+  } else {
+    document.getElementById('modal-title').textContent = 'Agregar modelo';
+    document.getElementById('m-marca').value  = '';
+    document.getElementById('m-modelo').value = '';
+    document.getElementById('m-cil').value    = '';
+  }
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('m-marca').focus(), 50);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function confirmarModal() {
+  const marca  = document.getElementById('m-marca').value.trim();
+  const modelo = document.getElementById('m-modelo').value.trim();
+  const cil    = document.getElementById('m-cil').value.trim();
+  if (!modelo) { alert('El modelo no puede estar vacío.'); return; }
+
+  if (modalEditIdx != null) {
+    const r = allModelos.find(x => x._idx === modalEditIdx);
+    r.Marca = marca; r.Modelo = modelo; r.Cilindrada = cil;
+    dirtySet.add(modalEditIdx);
+  } else {
+    const newIdx = allModelos.length;
+    allModelos.push({ Marca: marca, Modelo: modelo, Cilindrada: cil, _idx: newIdx });
+    dirtySet.add(newIdx);
+  }
+  closeModal();
+  filterModelos();
+}
+
+// Guardar BD_Motos.xlsx en Storage
+async function guardarModelos() {
+  if (window.__cadecomBypass) {
+    motoStatus('Modo local: no se puede guardar en la nube.', 'err'); return;
+  }
+  if (!window.sb) { motoStatus('Sin conexión a Supabase.', 'err'); return; }
+
+  const n = dirtySet.size + deletedSet.size;
+  if (!n) return;
+
+  const btnG = document.getElementById('btn-guardar-moto');
+  btnG.disabled = true;
+
+  try {
+    // Verificar que nadie haya cambiado el archivo mientras editabas
+    motoStatus('⏳ Verificando cambios de otros…', 'info');
+    const fresh = await (await fetch(STORAGE + 'BD_Motos.xlsx?t=' + Date.now())).arrayBuffer();
+    if (loadedFingerprint && fingerprint(fresh) !== loadedFingerprint) {
+      btnG.disabled = false;
+      motoStatus('⚠️ Otra persona modificó la lista de modelos desde que la abriste. ' +
+        'Para no pisar sus cambios, recargá la página y volvé a hacer tus ediciones.', 'err');
+      return;
+    }
+
+    motoStatus('⏳ Generando y subiendo BD_Motos.xlsx…', 'info');
+    // Construir array final (excluir borrados)
+    const rows = allModelos
+      .filter(r => !deletedSet.has(r._idx))
+      .map(r => ({ Marca: r.Marca, Modelo: r.Modelo, Cilindrada: r.Cilindrada }));
+
+    const ws = XLSX.utils.json_to_sheet(rows, { header: ['Marca', 'Modelo', 'Cilindrada'] });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Consulta');
+    const xlsBuf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+    const up = await sb.storage.from(BUCKET).upload('BD_Motos.xlsx', new Blob([xlsBuf],
+      { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      { upsert: true });
+    if (up.error) throw new Error(up.error.message);
+
+    loadedFingerprint = fingerprint(xlsBuf);  // ahora esta es la versión vigente
+    dirtySet.clear(); deletedSet.clear();
+    btnG.disabled = false;
+    motoStatus('✅ BD_Motos.xlsx guardado. ' + rows.length.toLocaleString('es-AR') + ' modelos.', 'ok');
+    filterModelos();
+  } catch (e) {
+    btnG.disabled = false;
+    motoStatus('❌ Error al guardar: ' + e.message, 'err');
+  }
+}
+
+// Cerrar modal al hacer clic afuera
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Atajos de teclado en modal
+document.getElementById('modal').addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && !e.shiftKey) confirmarModal();
 });
 </script>
 </body>

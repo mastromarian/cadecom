@@ -396,7 +396,7 @@ function getFilteredGlobal() {
 }
 
 function initFilters() {
-  const marcas = [...new Set(RAW_DATA.map(r => r.marca))].sort();
+  const marcas = [...new Map(RAW_DATA.map(r => [r.marca.toUpperCase(), r.marca])).values()].sort();
   buildMsList('marca', marcas);
   const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
   cats.push('Sin categoría');
@@ -1012,7 +1012,7 @@ updateInsights();
 function onHistoriaLoaded() {
   // Refrescar listas (pueden aparecer marcas/cilindradas/modelos solo históricos),
   // preservando las selecciones actuales del usuario
-  const marcas = [...new Set(RAW_DATA.map(r => r.marca))].sort();
+  const marcas = [...new Map(RAW_DATA.map(r => [r.marca.toUpperCase(), r.marca])).values()].sort();
   buildMsList('marca', marcas);
   updateMsTrigger('marca');
   const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
