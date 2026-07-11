@@ -209,27 +209,59 @@ thead th { position: relative; user-select: none; }
   </div>
   <div class="filter-group" style="min-width:auto">
     <label>Cilindrada</label>
-    <select id="f-cil" style="width:110px" onchange="onSelectCil()">
-      <option value="">Todas</option>
-    </select>
+    <div class="ms-wrap" id="ms-cil-wrap">
+      <div class="ms-trigger" id="ms-cil-trigger" onclick="toggleMs('cil',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-cil-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar cilindrada…" oninput="filterMsList('cil',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('cil')">Seleccionar todo</button>
+          <button onclick="clearMs('cil')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-cil-list"></div>
+      </div>
+    </div>
   </div>
   <div class="filter-group" style="min-width:auto">
     <label>Zona</label>
-    <select id="f-zona" style="width:130px" onchange="onZoneChange()">
-      <option value="">Todas</option>
-    </select>
+    <div class="ms-wrap" id="ms-zona-wrap">
+      <div class="ms-trigger" id="ms-zona-trigger" onclick="toggleMs('zona',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-zona-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar zona…" oninput="filterMsList('zona',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('zona')">Seleccionar todo</button>
+          <button onclick="clearMs('zona')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-zona-list"></div>
+      </div>
+    </div>
   </div>
   <div class="filter-group" style="min-width:auto">
     <label>Provincia</label>
-    <select id="f-provincia" style="width:130px" onchange="onProvinceChange()" disabled>
-      <option value="">Todas</option>
-    </select>
+    <div class="ms-wrap" id="ms-provincia-wrap">
+      <div class="ms-trigger" id="ms-provincia-trigger" onclick="toggleMs('provincia',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-provincia-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar provincia…" oninput="filterMsList('provincia',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('provincia')">Seleccionar todo</button>
+          <button onclick="clearMs('provincia')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-provincia-list"></div>
+      </div>
+    </div>
   </div>
   <div class="filter-group" style="min-width:auto">
     <label>Localidad</label>
-    <select id="f-localidad" style="width:130px" onchange="updateInsights()" disabled>
-      <option value="">Todas</option>
-    </select>
+    <div class="ms-wrap" id="ms-localidad-wrap">
+      <div class="ms-trigger" id="ms-localidad-trigger" onclick="toggleMs('localidad',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-localidad-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar localidad…" oninput="filterMsList('localidad',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('localidad')">Seleccionar todo</button>
+          <button onclick="clearMs('localidad')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-localidad-list"></div>
+      </div>
+    </div>
   </div>
   <button class="btn-reset" onclick="resetFilters()">Limpiar filtros</button>
 </div>
@@ -302,8 +334,16 @@ const MONTHS = ALL_MONTHS;
 const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '.' + mm; });
 
 // --- Multiselect ---
-const msState = { marca: new Set(), modelo: new Set() };
-const msAllItems = { marca: [], modelo: [] };
+const msState = { marca: new Set(), modelo: new Set(), cil: new Set(), zona: new Set(), provincia: new Set(), localidad: new Set() };
+const msAllItems = { marca: [], modelo: [], cil: [], zona: [], provincia: [], localidad: [] };
+const MS_LABELS = { marca: 'marcas', modelo: 'modelos', cil: 'cilindradas', zona: 'zonas', provincia: 'provincias', localidad: 'localidades' };
+
+// Repuebla las listas dependientes cuando cambia un filtro (cascada)
+function refreshDependents(key) {
+  if (key === 'marca' || key === 'cil') populateModelos();
+  if (key === 'zona') { populateProvincias(); populateLocalidades(); }
+  if (key === 'provincia') populateLocalidades();
+}
 
 function buildMsList(key, items) {
   msAllItems[key] = items;
@@ -325,7 +365,7 @@ function filterMsList(key, q) {
 }
 function onMsChange(key, value, checked) {
   if (checked) msState[key].add(value); else msState[key].delete(value);
-  updateMsTrigger(key); populateModelos(); updateInsights();
+  updateMsTrigger(key); refreshDependents(key); updateInsights();
 }
 function updateMsTrigger(key) {
   const trigger = document.getElementById(`ms-${key}-trigger`);
@@ -333,18 +373,18 @@ function updateMsTrigger(key) {
   if (n === 0) trigger.innerHTML = 'Todas';
   else if (n === 1) trigger.innerHTML = [...msState[key]][0];
   else {
-    const label = key === 'marca' ? 'marcas' : 'modelos';
+    const label = MS_LABELS[key] || '';
     trigger.innerHTML = `${n} ${label} <span class="ms-count">${n}</span>`;
   }
 }
 function selectAllMs(key) {
   document.querySelectorAll(`#ms-${key}-list input`).forEach(c => { c.checked = true; msState[key].add(c.value); });
-  updateMsTrigger(key); populateModelos(); updateInsights();
+  updateMsTrigger(key); refreshDependents(key); updateInsights();
 }
 function clearMs(key) {
   msState[key].clear();
   document.querySelectorAll(`#ms-${key}-list input`).forEach(c => c.checked = false);
-  updateMsTrigger(key); populateModelos(); updateInsights();
+  updateMsTrigger(key); refreshDependents(key); updateInsights();
 }
 function toggleMs(key, event) {
   event && event.stopPropagation();
@@ -369,66 +409,47 @@ document.addEventListener('click', e => {
 });
 
 function getFiltered() {
-  const cil       = document.getElementById('f-cil').value;
-  const zona       = document.getElementById('f-zona').value;
-  const provincia = document.getElementById('f-provincia').value;
-  const localidad = document.getElementById('f-localidad').value;
-
   return RAW_DATA.filter(r =>
-    (msState.marca.size === 0 || msState.marca.has(r.marca)) &&
-    (msState.modelo.size === 0 || msState.modelo.has(r.modelo)) &&
-    (!cil       || r.cilindrada === cil) &&
-    (!zona      || r.zona === zona) &&
-    (!provincia || r.provincia === provincia) &&
-    (!localidad || r.localidad === localidad)
+    (msState.marca.size === 0     || msState.marca.has(r.marca)) &&
+    (msState.modelo.size === 0    || msState.modelo.has(r.modelo)) &&
+    (msState.cil.size === 0       || msState.cil.has(r.cilindrada)) &&
+    (msState.zona.size === 0      || msState.zona.has(r.zona)) &&
+    (msState.provincia.size === 0 || msState.provincia.has(r.provincia)) &&
+    (msState.localidad.size === 0 || msState.localidad.has(r.localidad))
   );
 }
 
 // Filtro GLOBAL: solo marca/cilindrada/modelo, SIN filtros geográficos
 function getFilteredGlobal() {
-  const cil    = document.getElementById('f-cil').value;
-
   return RAW_DATA.filter(r =>
-    (msState.marca.size === 0 || msState.marca.has(r.marca)) &&
+    (msState.marca.size === 0  || msState.marca.has(r.marca)) &&
     (msState.modelo.size === 0 || msState.modelo.has(r.modelo)) &&
-    (!cil    || r.cilindrada === cil)
+    (msState.cil.size === 0    || msState.cil.has(r.cilindrada))
   );
 }
 
 function initFilters() {
   const marcas = [...new Map(RAW_DATA.map(r => [r.marca.toUpperCase(), r.marca])).values()].sort();
   buildMsList('marca', marcas);
+
   const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
   cats.push('Sin categoría');
-  const selCil = document.getElementById('f-cil');
-  selCil.innerHTML = '<option value="">Todas</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
-  
-  // Geographic filters - secuencial
-  // Zona: siempre habilitada
+  buildMsList('cil', cats);
+
   const allZonas = Object.keys(ZONA_LOCALIDADES).sort();
-  const selZona = document.getElementById('f-zona');
-  selZona.innerHTML = '<option value="">Todas</option>' + allZonas.map(z => `<option value="${z}">${z}</option>`).join('');
+  buildMsList('zona', allZonas);
 
-  // Provincia: deshabilitada hasta que se seleccione Zona
-  const selProv = document.getElementById('f-provincia');
-  selProv.disabled = true;
-  selProv.innerHTML = '<option value="">Todas</option>';
-
-  // Localidad: deshabilitada hasta que se seleccione Provincia
-  const selLoc = document.getElementById('f-localidad');
-  selLoc.disabled = true;
-  selLoc.innerHTML = '<option value="">Todas</option>';
-
+  populateProvincias();
+  populateLocalidades();
   populateModelos();
 }
 
 function populateModelos() {
   const marcas = [...msState.marca];
-  const cil    = document.getElementById('f-cil').value;
 
   const filtered = RAW_DATA.filter(r =>
     (marcas.length === 0 || marcas.includes(r.marca)) &&
-    (!cil || r.cilindrada === cil)
+    (msState.cil.size === 0 || msState.cil.has(r.cilindrada))
   );
 
   const modelos = [...new Set(filtered.map(r => r.modelo))].sort();
@@ -442,26 +463,54 @@ function populateModelos() {
   updateMsTrigger('modelo');
 }
 
-function onSelectCil() { populateModelos(); updateInsights(); }
+// Provincias disponibles según las zonas seleccionadas
+function populateProvincias() {
+  const zonas = [...msState.zona];
+  let provs;
+  if (zonas.length === 0) {
+    provs = Object.keys(PROVINCIA_LOCALIDADES).sort();
+  } else {
+    const locsInZonas = new Set();
+    zonas.forEach(z => (ZONA_LOCALIDADES[z] || []).forEach(l => locsInZonas.add(l)));
+    provs = Object.keys(PROVINCIA_LOCALIDADES)
+      .filter(p => PROVINCIA_LOCALIDADES[p].some(l => locsInZonas.has(l)))
+      .sort();
+  }
+  msState.provincia.forEach(p => { if (!provs.includes(p)) msState.provincia.delete(p); });
+  buildMsList('provincia', provs);
+  updateMsTrigger('provincia');
+}
+
+// Localidades disponibles según provincias (o, en su defecto, zonas) seleccionadas
+function populateLocalidades() {
+  const provs = [...msState.provincia];
+  const zonas = [...msState.zona];
+  let locs = [];
+  if (provs.length > 0) {
+    provs.forEach(p => (PROVINCIA_LOCALIDADES[p] || []).forEach(l => locs.push(l)));
+  } else if (zonas.length > 0) {
+    zonas.forEach(z => (ZONA_LOCALIDADES[z] || []).forEach(l => locs.push(l)));
+  } else {
+    locs = Object.values(PROVINCIA_LOCALIDADES).flat();
+  }
+  locs = [...new Set(locs)].sort();
+  msState.localidad.forEach(l => { if (!locs.includes(l)) msState.localidad.delete(l); });
+  buildMsList('localidad', locs);
+  updateMsTrigger('localidad');
+}
 
 function resetFilters() {
-  msState.marca.clear();
+  ['marca', 'modelo', 'cil', 'zona', 'provincia', 'localidad'].forEach(k => {
+    msState[k].clear();
+    updateMsTrigger(k);
+  });
+  // Reconstruir listas completas respetando la cascada
   buildMsList('marca', msAllItems.marca);
-  updateMsTrigger('marca');
-  msState.modelo.clear();
-  buildMsList('modelo', msAllItems.modelo);
-  updateMsTrigger('modelo');
-  document.getElementById('f-cil').value = '';
-  document.getElementById('f-zona').value = '';
-  document.getElementById('f-provincia').value = '';
-  document.getElementById('f-localidad').value = '';
-
-  // Deshabilitar provincia y localidad al limpiar filtros
-  document.getElementById('f-provincia').disabled = true;
-  document.getElementById('f-localidad').disabled = true;
-  document.getElementById('f-provincia').innerHTML = '<option value="">Todas</option>';
-  document.getElementById('f-localidad').innerHTML = '<option value="">Todas</option>';
-
+  buildMsList('cil', msAllItems.cil);
+  buildMsList('zona', msAllItems.zona);
+  populateProvincias();
+  populateLocalidades();
+  populateModelos();
   updateInsights();
 }
 
@@ -909,72 +958,6 @@ function enableColumnResize(table) {
   });
 }
 
-function onZoneChange() {
-  const zona = document.getElementById('f-zona').value;
-  const selProv = document.getElementById('f-provincia');
-  const selLoc = document.getElementById('f-localidad');
-
-  // Limpiar provincia y localidad
-  selProv.value = '';
-  selLoc.value = '';
-
-  if (!zona) {
-    // Si no hay zona seleccionada, deshabilitar provincia y localidad
-    selProv.disabled = true;
-    selLoc.disabled = true;
-    selProv.innerHTML = '<option value="">Todas</option>';
-    selLoc.innerHTML = '<option value="">Todas</option>';
-  } else {
-    // Si hay zona, habilitar provincia y mostrar solo provincias de esa zona
-    selProv.disabled = false;
-    selLoc.disabled = true;
-
-    // Obtener provincias de la zona
-    const provFromZona = new Set();
-    if (ZONA_LOCALIDADES[zona]) {
-      // Obtener localidades de la zona
-      const locsInZona = ZONA_LOCALIDADES[zona];
-      // Buscar qué provincias contienen esas localidades
-      for (const [prov, locs] of Object.entries(PROVINCIA_LOCALIDADES)) {
-        if (locs.some(l => locsInZona.includes(l))) {
-          provFromZona.add(prov);
-        }
-      }
-    }
-
-    const provs = Array.from(provFromZona).sort();
-    selProv.innerHTML = '<option value="">Todas</option>' + provs.map(p => `<option value="${p}">${p}</option>`).join('');
-    selLoc.innerHTML = '<option value="">Todas</option>';
-  }
-
-  updateInsights();
-}
-
-function onProvinceChange() {
-  const provincia = document.getElementById('f-provincia').value;
-  const selLoc = document.getElementById('f-localidad');
-
-  // Limpiar localidad
-  selLoc.value = '';
-
-  if (!provincia) {
-    // Si no hay provincia seleccionada, deshabilitar localidad
-    selLoc.disabled = true;
-    selLoc.innerHTML = '<option value="">Todas</option>';
-  } else {
-    // Si hay provincia, habilitar localidad y mostrar solo localidades de esa provincia
-    selLoc.disabled = false;
-    const locs = PROVINCIA_LOCALIDADES[provincia] || [];
-    selLoc.innerHTML = '<option value="">Todas</option>' + locs.map(l => `<option value="${l}">${l}</option>`).join('');
-  }
-
-  updateInsights();
-}
-
-function populateLocalidades() {
-  // Esta función ya no es necesaria con el nuevo flujo secuencial
-  // pero la mantenemos por compatibilidad
-}
 // --- Boot ---
 (function renderUpdateBanner(){
   const banner = document.getElementById('update-banner');
@@ -1017,10 +1000,10 @@ function onHistoriaLoaded() {
   updateMsTrigger('marca');
   const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
   cats.push('Sin categoría');
-  const selCil = document.getElementById('f-cil');
-  const prevCil = selCil.value;
-  selCil.innerHTML = '<option value="">Todas</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
-  if (cats.includes(prevCil)) selCil.value = prevCil;
+  buildMsList('cil', cats);
+  updateMsTrigger('cil');
+  populateProvincias();
+  populateLocalidades();
   populateModelos();
   updateInsights();
 }
