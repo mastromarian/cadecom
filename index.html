@@ -99,6 +99,7 @@ header p  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .ms-item input[type=checkbox] { width: 12px; height: 12px; margin: 0; padding: 0; accent-color: #2E5FA3; flex-shrink: 0; cursor: pointer; }
 .ms-item span { text-align: left; }
 .ms-count { display: inline-block; background: #2E5FA3; color: #fff; border-radius: 10px; font-size: 10px; padding: 1px 6px; margin-left: 4px; }
+.ms-sep { height: 0; border-top: 1px solid #d3dcea; margin: 4px 8px; }
 
 /* Filtros deshabilitados */
 select:disabled {
@@ -337,6 +338,16 @@ const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return y
 const msState = { marca: new Set(), modelo: new Set(), cil: new Set(), zona: new Set(), provincia: new Set(), localidad: new Set() };
 const msAllItems = { marca: [], modelo: [], cil: [], zona: [], provincia: [], localidad: [] };
 const MS_LABELS = { marca: 'marcas', modelo: 'modelos', cil: 'cilindradas', zona: 'zonas', provincia: 'provincias', localidad: 'localidades' };
+const MS_SEP = '__sep__';   // ítem separador (divisor visual, no seleccionable)
+
+// Orden fijo de cilindradas
+const CIL_ORDER = ['Hasta 110 cc', '111-150 cc', '151-250 cc', '251-500 cc', 'Más de 500 cc'];
+
+// Zona Norte: agrupación virtual (subconjunto de AMBA) por localidad cabecera de partido.
+// "Vicente López" figura en la base como OLIVOS; "Gral. San Martín" como SAN MARTIN.
+const ZONA_NORTE = 'ZONA NORTE';
+const ZONA_NORTE_LOCS = ['SAN ISIDRO', 'SAN FERNANDO', 'TIGRE', 'ESCOBAR', 'PILAR', 'JOSE C. PAZ', 'MALVINAS ARGENTINAS', 'SAN MIGUEL', 'SAN MARTIN', 'OLIVOS'];
+const ZN_SET = new Set(ZONA_NORTE_LOCS);
 
 // Repuebla las listas dependientes cuando cambia un filtro (cascada)
 function refreshDependents(key) {
@@ -352,16 +363,14 @@ function buildMsList(key, items) {
     console.error(`[buildMsList] ERROR: ms-${key}-list element not found!`);
     return;
   }
-  const html = items.map(v =>
-    `<label class="ms-item"><input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span></label>`
-  ).join('');
-  list.innerHTML = html;
+  list.innerHTML = items.map(msItemHtml(key)).join('');
 }
+const msItemHtml = key => v =>
+  v === MS_SEP ? '<div class="ms-sep"></div>' :
+  `<label class="ms-item"><input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span></label>`;
 function filterMsList(key, q) {
-  const items = msAllItems[key].filter(v => v.toLowerCase().includes(q.toLowerCase()));
-  document.getElementById(`ms-${key}-list`).innerHTML = items.map(v =>
-    `<label class="ms-item"><input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span></label>`
-  ).join('');
+  const items = msAllItems[key].filter(v => v !== MS_SEP && v.toLowerCase().includes(q.toLowerCase()));
+  document.getElementById(`ms-${key}-list`).innerHTML = items.map(msItemHtml(key)).join('');
 }
 function onMsChange(key, value, checked) {
   if (checked) msState[key].add(value); else msState[key].delete(value);
@@ -408,12 +417,20 @@ document.addEventListener('click', e => {
   }
 });
 
+// Zona (contempla la agrupación virtual "Zona Norte" por localidad)
+function matchZona(r) {
+  if (msState.zona.size === 0) return true;
+  if (msState.zona.has(r.zona)) return true;
+  if (msState.zona.has(ZONA_NORTE) && ZN_SET.has(r.localidad)) return true;
+  return false;
+}
+
 function getFiltered() {
   return RAW_DATA.filter(r =>
     (msState.marca.size === 0     || msState.marca.has(r.marca)) &&
     (msState.modelo.size === 0    || msState.modelo.has(r.modelo)) &&
     (msState.cil.size === 0       || msState.cil.has(r.cilindrada)) &&
-    (msState.zona.size === 0      || msState.zona.has(r.zona)) &&
+    matchZona(r) &&
     (msState.provincia.size === 0 || msState.provincia.has(r.provincia)) &&
     (msState.localidad.size === 0 || msState.localidad.has(r.localidad))
   );
@@ -432,12 +449,14 @@ function initFilters() {
   const marcas = [...new Map(RAW_DATA.map(r => [r.marca.toUpperCase(), r.marca])).values()].sort();
   buildMsList('marca', marcas);
 
-  const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
-  cats.push('Sin categoría');
+  const cilPresent = new Set(RAW_DATA.map(r => r.cilindrada));
+  const cats = CIL_ORDER.filter(c => cilPresent.has(c));
+  if (cilPresent.has('Sin categoría')) cats.push(MS_SEP, 'Sin categoría');
   buildMsList('cil', cats);
 
-  const allZonas = Object.keys(ZONA_LOCALIDADES).sort();
-  buildMsList('zona', allZonas);
+  // AMBA y Zona Norte arriba, luego separador, luego el resto de las zonas
+  const otherZonas = Object.keys(ZONA_LOCALIDADES).filter(z => z !== 'AMBA').sort();
+  buildMsList('zona', ['AMBA', ZONA_NORTE, MS_SEP, ...otherZonas]);
 
   populateProvincias();
   populateLocalidades();
@@ -463,18 +482,19 @@ function populateModelos() {
   updateMsTrigger('modelo');
 }
 
-// Provincias disponibles según las zonas seleccionadas
+// Provincias disponibles según las zonas seleccionadas (por relación real zona→provincia)
 function populateProvincias() {
   const zonas = [...msState.zona];
   let provs;
   if (zonas.length === 0) {
     provs = Object.keys(PROVINCIA_LOCALIDADES).sort();
   } else {
-    const locsInZonas = new Set();
-    zonas.forEach(z => (ZONA_LOCALIDADES[z] || []).forEach(l => locsInZonas.add(l)));
-    provs = Object.keys(PROVINCIA_LOCALIDADES)
-      .filter(p => PROVINCIA_LOCALIDADES[p].some(l => locsInZonas.has(l)))
-      .sort();
+    const set = new Set();
+    zonas.forEach(z => {
+      if (z === ZONA_NORTE) set.add('BUENOS AIRES');
+      else (ZONA_PROVINCIAS[z] || []).forEach(p => set.add(p));
+    });
+    provs = [...set].sort();
   }
   msState.provincia.forEach(p => { if (!provs.includes(p)) msState.provincia.delete(p); });
   buildMsList('provincia', provs);
@@ -489,7 +509,10 @@ function populateLocalidades() {
   if (provs.length > 0) {
     provs.forEach(p => (PROVINCIA_LOCALIDADES[p] || []).forEach(l => locs.push(l)));
   } else if (zonas.length > 0) {
-    zonas.forEach(z => (ZONA_LOCALIDADES[z] || []).forEach(l => locs.push(l)));
+    zonas.forEach(z => {
+      if (z === ZONA_NORTE) ZONA_NORTE_LOCS.forEach(l => locs.push(l));
+      else (ZONA_LOCALIDADES[z] || []).forEach(l => locs.push(l));
+    });
   } else {
     locs = Object.values(PROVINCIA_LOCALIDADES).flat();
   }

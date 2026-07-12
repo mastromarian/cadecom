@@ -25,22 +25,37 @@ JUNK = {'TOTAL GENERAL', 'NAN', ''}
 # ===== 1. BD_GEO: localidad -> (provincia, zona) canónicos =====
 geo_df = pd.read_excel(GEO_FILE, sheet_name='Geo')
 geo_by_loc = {}              # norm(localidad) -> {localidad, provincia, zona}
-zona_localidades = {}        # ZONA -> set(localidades canónicas)
-provincia_localidades = {}   # PROVINCIA -> set(localidades canónicas)
 for _, row in geo_df.iterrows():
     loc  = str(row.get('Localidad', '')).strip()
     prov = str(row.get('Provincia', '')).strip()
     zona = str(row.get('Zona', '')).strip().upper()
     if not loc or norm(loc) in JUNK:
         continue
-    geo_by_loc[norm(loc)] = {'localidad': loc, 'provincia': prov, 'zona': zona}
-    if zona:
-        zona_localidades.setdefault(zona, set()).add(loc)
-    if prov:
-        provincia_localidades.setdefault(prov, set()).add(loc)
+    k = norm(loc)
+    prev = geo_by_loc.get(k)
+    # Hay nombres de localidad repetidos en varias provincias (ej. MAIPU, SAN MARTIN,
+    # COLON). Como el tablero está centrado en AMBA y las ventas no traen provincia,
+    # se prioriza la asignación AMBA/Buenos Aires ante un choque de nombres.
+    if prev and prev['zona'] == 'AMBA' and zona != 'AMBA':
+        continue
+    geo_by_loc[k] = {'localidad': loc, 'provincia': prov, 'zona': zona}
+
+# Mapas derivados desde el dict ya colapsado: cada localidad cae en UNA sola
+# provincia/zona, así el desplegable de provincias no arrastra provincias fantasma.
+zona_localidades = {}        # ZONA -> set(localidades)
+provincia_localidades = {}   # PROVINCIA -> set(localidades)
+zona_provincias = {}         # ZONA -> set(provincias)
+for g in geo_by_loc.values():
+    if g['zona']:
+        zona_localidades.setdefault(g['zona'], set()).add(g['localidad'])
+    if g['provincia']:
+        provincia_localidades.setdefault(g['provincia'], set()).add(g['localidad'])
+    if g['zona'] and g['provincia']:
+        zona_provincias.setdefault(g['zona'], set()).add(g['provincia'])
 
 zona_localidades = {z: sorted(locs) for z, locs in zona_localidades.items()}
 provincia_localidades = {p: sorted(locs) for p, locs in provincia_localidades.items()}
+zona_provincias = {z: sorted(ps) for z, ps in zona_provincias.items()}
 print(f'BD_Geo: {len(geo_by_loc)} localidades, {len(zona_localidades)} zonas, {len(provincia_localidades)} provincias')
 
 # ===== 2. BD_MOTOS: modelo -> (marca, cilindrada) =====
@@ -164,6 +179,7 @@ js += 'const MODELO_INFO = ' + dump(modelo_info) + ';\n'
 js += 'const LOCALIDAD_INFO = ' + dump(loc_info) + ';\n'
 js += 'const ZONA_LOCALIDADES = ' + dump(zona_localidades) + ';\n'
 js += 'const PROVINCIA_LOCALIDADES = ' + dump(provincia_localidades) + ';\n'
+js += 'const ZONA_PROVINCIAS = ' + dump(zona_provincias) + ';\n'
 js += 'const RAW_DATA = ' + dump(recent_records) + ';\n'
 js += REHYDRATE
 js += 'RAW_DATA.forEach(_rehydrate);\n'
