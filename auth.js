@@ -7,6 +7,10 @@
   const SUPABASE_URL  = 'https://cazdzwigtazmecixhuiw.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhemR6d2lndGF6bWVjaXhodWl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5ODQ3OTQsImV4cCI6MjA5NzU2MDc5NH0.gDpzVh5apPBpDujdRN8olJk93FxULHCrS49XOVxGwvU';
 
+  // Roles con acceso al tablero (los demás, ej. vendedor_*, quedan bloqueados)
+  const ADMIN_ROLES = new Set(['admin_total', 'admin_pueyrredon', 'admin_pacheco']);
+  const isAdmin = role => ADMIN_ROLES.has(role);
+
   let sb = null;
   try {
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
@@ -136,7 +140,7 @@
   async function enter(sess) {
     const u = await loadRole(sess);
     if (!u) { showForm('Ingresá con tu usuario'); return; }
-    if (u.role === 'admin') { grantAccess(u.email); return; }
+    if (isAdmin(u.role)) { grantAccess(u.email); return; }
     if (!u.ok) { showForm('Tu sesión expiró. Ingresá de nuevo.'); return; }  // consulta falló → re-login
     denyView(u.email);                                                       // lectura genuino → bloqueado
   }
@@ -182,7 +186,7 @@
     if (!sess) { showForm('Ingresá con tu usuario'); return; }
     grantAccess(sess.user.email);
     loadRole(sess).then(u => {
-      if (u && u.ok && u.role !== 'admin') {  // confirmado NO admin → bloquear
+      if (u && u.ok && !isAdmin(u.role)) {  // confirmado NO admin → bloquear
         localStorage.removeItem('cadecom_role');
         blockNonAdmin(u.email);
       }
