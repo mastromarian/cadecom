@@ -383,6 +383,10 @@ function brandLogoHtml(marca) {
 // --- Auto insights ---
 function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   const insights = [];
+  // SIN MARCA solo es insight cuando el número es representativo:
+  // >= 50 unid de variación como marca, >= 20 unid como modelo
+  const repBrand = r => r.marca !== 'SIN MARCA' || Math.abs(r.varAbs) >= 50;
+  const repModel = r => r.marca !== 'SIN MARCA' || Math.abs(r.varAbs) >= 20;
 
   // Modelos con datos en ambos meses
   const rows = [];
@@ -393,7 +397,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   });
 
   // 1. Modelos nuevos (0 en A, >= 10 en B)
-  const newModels = rows.filter(r => r.uA === 0 && r.uB >= 10)
+  const newModels = rows.filter(r => r.uA === 0 && r.uB >= 10 && repModel(r))
     .sort((a,b) => b.uB - a.uB).slice(0,3);
   if (newModels.length > 0) {
     const names = newModels.map(r => `${r.marca} ${r.modelo} (${r.uB})`).join(', ');
@@ -402,12 +406,12 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   }
 
   // 2. Mayor caída absoluta (min 30 uA)
-  const worstAbs = rows.filter(r => r.uA >= 30).sort((a,b) => a.varAbs - b.varAbs)[0];
+  const worstAbs = rows.filter(r => r.uA >= 30 && repModel(r)).sort((a,b) => a.varAbs - b.varAbs)[0];
   if (worstAbs) insights.push({ icon:'📉', color:'#c62828', bg:'#fdf2f2',
     text: `Mayor caída absoluta: ${worstAbs.marca} ${worstAbs.modelo} (${worstAbs.varAbs.toLocaleString('es-AR')} unid., ${worstAbs.varPct?.toFixed(1)}%)` });
 
   // 3. Mayor crecimiento absoluto (min 10 uA)
-  const bestAbs = rows.filter(r => r.uA >= 10).sort((a,b) => b.varAbs - a.varAbs)[0];
+  const bestAbs = rows.filter(r => r.uA >= 10 && repModel(r)).sort((a,b) => b.varAbs - a.varAbs)[0];
   if (bestAbs && bestAbs.varAbs > 0) insights.push({ icon:'📈', color:'#2e7d32', bg:'#eafaf1',
     text: `Mayor crecimiento absoluto: ${bestAbs.marca} ${bestAbs.modelo} (+${bestAbs.varAbs.toLocaleString('es-AR')} unid., +${bestAbs.varPct?.toFixed(1)}%)` });
 
@@ -419,7 +423,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   });
   const brandRows = Object.entries(brandMap)
     .map(([m,v]) => ({marca:m,a:v.a,b:v.b,varAbs:v.b-v.a,varPct:v.a?(v.b-v.a)/v.a*100:null}))
-    .filter(r => r.a >= 100);
+    .filter(r => r.a >= 100 && repBrand(r));
   const worstBrand = brandRows.sort((a,b) => a.varPct - b.varPct)[0];
   if (worstBrand) insights.push({ icon:'🔴', color:'#b71c1c', bg:'#fdf2f2',
     text: `Marca más golpeada: ${worstBrand.marca} (${worstBrand.b.toLocaleString('es-AR')} unid. en ${lB}, ${worstBrand.varPct?.toFixed(1)}%)` });
@@ -430,7 +434,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
     text: `Marca con mejor desempeño: ${bestBrand.marca} (${bestBrand.b.toLocaleString('es-AR')} unid. en ${lB}, ${bestBrand.varPct > 0 ? '+' : ''}${bestBrand.varPct?.toFixed(1)}%)` });
 
   // 6. Modelos que desaparecieron (>= 30 en A, 0 en B)
-  const gone = rows.filter(r => r.uA >= 30 && r.uB === 0).sort((a,b) => b.uA - a.uA).slice(0,2);
+  const gone = rows.filter(r => r.uA >= 30 && r.uB === 0 && repModel(r)).sort((a,b) => b.uA - a.uA).slice(0,2);
   if (gone.length > 0) {
     const names = gone.map(r => `${r.marca} ${r.modelo} (${r.uA} en ${lA})`).join(', ');
     insights.push({ icon:'⛔', color:'#6a1a1a', bg:'#fff3f3',

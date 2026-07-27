@@ -615,6 +615,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   const cilRows = Object.entries(cilMap)
     .map(([name,v]) => ({ name, ...v }))
     .filter(c => c.a > 0 || c.b > 0)
+    .filter(c => c.name !== 'Sin categoría')   // los "sin marca" no son un insight de cilindrada
     .sort((x,y) => (cilOrder.indexOf(x.name)) - (cilOrder.indexOf(y.name)));
   const cilBullets = cilRows.map(c =>
     `<b>${c.name}</b>: ${nf(c.a)} → ${nf(c.b)} ${vSpan(c.a,c.b)}`);
@@ -647,6 +648,10 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
 
   // Umbral mínimo: solo insights con variación >= 10 unidades (sino es imperceptible)
   const MIN_VAR = 10;
+  // SIN MARCA solo es insight cuando el número es representativo:
+  // >= 50 unid de variación en Marcas, >= 20 unid en Modelos
+  const repBrand = r => r.marca !== 'SIN MARCA' || Math.abs(r.varAbs) >= 50;
+  const repModel = r => r.marca !== 'SIN MARCA' || Math.abs(r.varAbs) >= 20;
 
   // ===== (2) MARCAS: insights relevantes =====
   const marcaBullets = [];
@@ -654,23 +659,23 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   const pushBrand = (txt, marca) => { if (!usedBrands.has(marca)) { marcaBullets.push(txt); usedBrands.add(marca); } };
 
   // PRIORIDAD: Marcas nuevas (0 en A, >= MIN_VAR en B) — todas las relevantes
-  const bNewList = [...brandRows].filter(r => r.a === 0 && r.b >= MIN_VAR).sort((a,b) => b.b - a.b);
+  const bNewList = [...brandRows].filter(r => r.a === 0 && r.b >= MIN_VAR && repBrand(r)).sort((a,b) => b.b - a.b);
   bNewList.forEach(bn => pushBrand(`🆕 <b>${bn.marca}</b> debutó con ${nf(bn.b)} unid en ${lB}`, bn.marca));
 
   // Mayor crecimiento absoluto
-  const bGain = [...brandRows].filter(r => r.varAbs >= MIN_VAR).sort((a,b) => b.varAbs - a.varAbs)[0];
+  const bGain = [...brandRows].filter(r => r.varAbs >= MIN_VAR && repBrand(r)).sort((a,b) => b.varAbs - a.varAbs)[0];
   if (bGain) pushBrand(`📈 <b>${bGain.marca}</b> lideró el crecimiento: +${nf(bGain.varAbs)} unid (${pctStr(bGain.a,bGain.b)}), top ${rankOf[bGain.marca]}`, bGain.marca);
   // Mayor caída absoluta
-  const bDrop = [...brandRows].filter(r => r.varAbs <= -MIN_VAR).sort((a,b) => a.varAbs - b.varAbs)[0];
+  const bDrop = [...brandRows].filter(r => r.varAbs <= -MIN_VAR && repBrand(r)).sort((a,b) => a.varAbs - b.varAbs)[0];
   if (bDrop) pushBrand(`📉 <b>${bDrop.marca}</b> la mayor caída: ${nf(bDrop.varAbs)} unid (${pctStr(bDrop.a,bDrop.b)}), top ${rankOf[bDrop.marca]}`, bDrop.marca);
   // Outlier de crecimiento % (volumen relevante)
-  const oUp = [...brandRows].filter(r => r.b >= 40 && r.varAbs >= MIN_VAR && r.varPct !== null && r.varPct >= 40).sort((a,b) => b.varPct - a.varPct)[0];
+  const oUp = [...brandRows].filter(r => r.b >= 40 && r.varAbs >= MIN_VAR && r.varPct !== null && r.varPct >= 40 && repBrand(r)).sort((a,b) => b.varPct - a.varPct)[0];
   if (oUp) pushBrand(`🚀 <b>${oUp.marca}</b> outlier: ${pctStr(oUp.a,oUp.b)} (${nf(oUp.a)}→${nf(oUp.b)} unid)`, oUp.marca);
   // Caída fuerte en top 20
-  const oDown = [...brandRows].filter(r => rankOf[r.marca] <= 20 && r.varAbs <= -MIN_VAR && r.varPct !== null && r.varPct <= -25).sort((a,b) => a.varPct - b.varPct)[0];
+  const oDown = [...brandRows].filter(r => rankOf[r.marca] <= 20 && r.varAbs <= -MIN_VAR && r.varPct !== null && r.varPct <= -25 && repBrand(r)).sort((a,b) => a.varPct - b.varPct)[0];
   if (oDown) pushBrand(`⚠️ <b>${oDown.marca}</b> cayó ${pctStr(oDown.a,oDown.b)} estando en top ${rankOf[oDown.marca]}`, oDown.marca);
   // Otro crecimiento % relevante en top 20
-  const oUp2 = [...brandRows].filter(r => rankOf[r.marca] <= 20 && r.varAbs >= MIN_VAR && r.varPct !== null && r.varPct >= 25).sort((a,b) => b.varPct - a.varPct).find(r => !usedBrands.has(r.marca));
+  const oUp2 = [...brandRows].filter(r => rankOf[r.marca] <= 20 && r.varAbs >= MIN_VAR && r.varPct !== null && r.varPct >= 25 && repBrand(r)).sort((a,b) => b.varPct - a.varPct).find(r => !usedBrands.has(r.marca));
   if (oUp2) pushBrand(`🟢 <b>${oUp2.marca}</b> creció ${pctStr(oUp2.a,oUp2.b)} (top ${rankOf[oUp2.marca]})`, oUp2.marca);
 
   // ===== Datos de modelo para (3) =====
@@ -689,27 +694,27 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   const modKey = m => `${m.marca}|${m.modelo}`;
 
   // PRIORIDAD: Modelos nuevos (0 en A, >= MIN_VAR en B) — hasta 5 destacados
-  const mNewList = [...modRows].filter(r => r.a === 0 && r.b >= MIN_VAR).sort((a,b) => b.b - a.b).slice(0, 5);
+  const mNewList = [...modRows].filter(r => r.a === 0 && r.b >= MIN_VAR && repModel(r)).sort((a,b) => b.b - a.b).slice(0, 5);
   mNewList.forEach(mn => {
     modeloBullets.push(`🆕 <b>${mn.marca} ${mn.modelo}</b> debutó con ${nf(mn.b)} unid`);
     usedModels.add(modKey(mn));
   });
 
   // Mayor crecimiento absoluto
-  const mGain = [...modRows].filter(r => r.varAbs >= MIN_VAR && !usedModels.has(modKey(r))).sort((a,b) => b.varAbs - a.varAbs)[0];
+  const mGain = [...modRows].filter(r => r.varAbs >= MIN_VAR && !usedModels.has(modKey(r)) && repModel(r)).sort((a,b) => b.varAbs - a.varAbs)[0];
   if (mGain) { modeloBullets.push(`📈 <b>${mGain.marca} ${mGain.modelo}</b>: +${nf(mGain.varAbs)} unid (${pctStr(mGain.a,mGain.b)})`); usedModels.add(modKey(mGain)); }
   // Mayor caída absoluta
-  const mDrop = [...modRows].filter(r => r.varAbs <= -MIN_VAR && !usedModels.has(modKey(r))).sort((a,b) => a.varAbs - b.varAbs)[0];
+  const mDrop = [...modRows].filter(r => r.varAbs <= -MIN_VAR && !usedModels.has(modKey(r)) && repModel(r)).sort((a,b) => a.varAbs - b.varAbs)[0];
   if (mDrop) { modeloBullets.push(`📉 <b>${mDrop.marca} ${mDrop.modelo}</b>: ${nf(mDrop.varAbs)} unid (${pctStr(mDrop.a,mDrop.b)})`); usedModels.add(modKey(mDrop)); }
   // Modelo que desapareció
-  const mGone = [...modRows].filter(r => r.a >= 30 && r.b === 0).sort((a,b) => b.a - a.a)[0];
+  const mGone = [...modRows].filter(r => r.a >= 30 && r.b === 0 && repModel(r)).sort((a,b) => b.a - a.a)[0];
   if (mGone) modeloBullets.push(`⛔ <b>${mGone.marca} ${mGone.modelo}</b> sin ventas en ${lB} (tenía ${nf(mGone.a)})`);
   // Cambio de posición en el ranking intra-gama: en la cilindrada de mayor volumen
   // Solo se reporta si un modelo SUPERÓ a otro en el ranking de unidades (volúmenes comparables)
   const topCil = cilRows.filter(c => c.name !== 'Sin categoría').sort((a,b) => b.b - a.b)[0];
   if (topCil) {
     // Top 10 de la gama por ventas del mes B
-    const inCil = modRows.filter(r => r.cil === topCil.name && r.b > 0)
+    const inCil = modRows.filter(r => r.cil === topCil.name && r.b > 0 && repModel(r))
       .sort((a,b) => b.b - a.b).slice(0, 10);
     // Buscar un par que cruzó posiciones: X estaba debajo de Y en A pero arriba en B
     let swap = null;
@@ -728,7 +733,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
     }
   }
   // Mayor outlier % con volumen
-  const mOut = [...modRows].filter(r => r.b >= 30 && r.varAbs >= MIN_VAR && r.varPct !== null && r.varPct >= 50).sort((a,b) => b.varPct - a.varPct)[0];
+  const mOut = [...modRows].filter(r => r.b >= 30 && r.varAbs >= MIN_VAR && r.varPct !== null && r.varPct >= 50 && repModel(r)).sort((a,b) => b.varPct - a.varPct)[0];
   if (mOut && mOut.modelo !== mGain?.modelo) modeloBullets.push(`🚀 <b>${mOut.marca} ${mOut.modelo}</b>: ${pctStr(mOut.a,mOut.b)} (${nf(mOut.a)}→${nf(mOut.b)})`);
 
   // ===== Render de los 4 cuadros =====
