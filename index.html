@@ -294,7 +294,7 @@ thead th { position: relative; user-select: none; }
   </div>
   <div class="filter-group" style="min-width:auto; margin:0">
     <label>Mín. unidades</label>
-    <input type="number" id="ins-min" value="50" min="1" style="width:56px;border:1px solid #ccd5e8;border-radius:6px;padding:5px 6px;font-size:12px;text-align:center;background:#f7f9fd" onchange="updateInsights()">
+    <input type="number" id="ins-min" value="1" min="1" style="width:56px;border:1px solid #ccd5e8;border-radius:6px;padding:5px 6px;font-size:12px;text-align:center;background:#f7f9fd" onchange="updateInsights()">
   </div>
 </div>
 
@@ -346,7 +346,7 @@ const CIL_ORDER = ['Hasta 110 cc', '111-150 cc', '151-250 cc', '251-500 cc', 'M�
 // Zona Norte: agrupación virtual (subconjunto de AMBA) por localidad cabecera de partido.
 // "Vicente López" figura en la base como OLIVOS; "Gral. San Martín" como SAN MARTIN.
 const ZONA_NORTE = 'ZONA NORTE';
-const ZONA_NORTE_LOCS = ['SAN ISIDRO', 'SAN FERNANDO', 'TIGRE', 'ESCOBAR', 'PILAR', 'JOSE C. PAZ', 'MALVINAS ARGENTINAS', 'SAN MIGUEL', 'SAN MARTIN', 'OLIVOS'];
+const ZONA_NORTE_LOCS = ['SAN ISIDRO', 'SAN FERNANDO', 'TIGRE', 'ESCOBAR', 'PILAR', 'JOSE C. PAZ', 'MALVINAS ARGENTINAS', 'SAN MIGUEL', 'SAN MARTIN', 'OLIVOS', 'ZARATE', 'CAMPANA'];
 const ZN_SET = new Set(ZONA_NORTE_LOCS);
 
 // Repuebla las listas dependientes cuando cambia un filtro (cascada)
