@@ -351,6 +351,15 @@ const ZONA_PACHECO = 'ZONA PACHECO';
 const ZONA_PACHECO_LOCS = ['SAN ISIDRO', 'SAN FERNANDO', 'TIGRE', 'ESCOBAR', 'PILAR', 'JOSE C. PAZ', 'MALVINAS ARGENTINAS', 'SAN MIGUEL', 'SAN MARTIN', 'OLIVOS', 'ZARATE', 'CAMPANA', 'CAPILLA DEL SENOR'];
 const ZP_SET = new Set(ZONA_PACHECO_LOCS);
 
+// AMBA real (curada): en la base la zona "AMBA" abarca TODA la provincia de Buenos Aires
+// (incluye Mar del Plata, Bahía Blanca, Villa Gesell, etc.). Acotamos AMBA al conurbano /
+// AMBA-40. El interior de Bs As sigue accesible vía provincia = Buenos Aires.
+const AMBA_LOCS = ['ADROGUE', 'AVELLANEDA', 'BERAZATEGUI', 'BERISSO', 'BRANDSEN', 'CABA', 'CAMPANA', 'CANUELAS', 'CAPILLA DEL SENOR', 'ENSENADA', 'ESCOBAR', 'ESTEBAN ECHEVERRIA', 'EZEIZA', 'FLORENCIO VARELA', 'GENERAL RODRIGUEZ', 'JOSE C. PAZ', 'LA MATANZA', 'LA PLATA', 'LANUS', 'LOMAS DE ZAMORA', 'LUJAN', 'MALVINAS ARGENTINAS', 'MARCOS PAZ', 'MERLO', 'MORENO', 'MORON', 'OLIVOS', 'PILAR', 'QUILMES', 'SAN FERNANDO', 'SAN ISIDRO', 'SAN MARTIN', 'SAN MIGUEL', 'SAN VICENTE', 'TIGRE', 'TRES DE FEBRERO', 'ZARATE'];
+const AMBA_SET = new Set(AMBA_LOCS);
+
+// Zonas "virtuales" (curadas): matchean por localidad, no por el campo r.zona de la base.
+const VIRTUAL_ZONAS = { 'AMBA': AMBA_SET, [ZONA_PACHECO]: ZP_SET };
+
 // Repuebla las listas dependientes cuando cambia un filtro (cascada)
 function refreshDependents(key) {
   if (key === 'marca' || key === 'cil') populateModelos();
@@ -419,11 +428,14 @@ document.addEventListener('click', e => {
   }
 });
 
-// Zona (contempla la agrupación virtual "Zona Norte" por localidad)
+// Zona: las virtuales (AMBA curada, Zona Pacheco) matchean por localidad;
+// las macro-regiones (NOA, NEA, Cuyo, Centro, Patagonia) por el campo r.zona.
 function matchZona(r) {
   if (msState.zona.size === 0) return true;
-  if (msState.zona.has(r.zona)) return true;
-  if (msState.zona.has(ZONA_PACHECO) && ZP_SET.has(r.localidad)) return true;
+  for (const z of msState.zona) {
+    if (VIRTUAL_ZONAS[z]) { if (VIRTUAL_ZONAS[z].has(r.localidad)) return true; }
+    else if (z === r.zona) return true;
+  }
   return false;
 }
 
@@ -494,6 +506,7 @@ function populateProvincias() {
     const set = new Set();
     zonas.forEach(z => {
       if (z === ZONA_PACHECO) set.add('BUENOS AIRES');
+      else if (z === 'AMBA') { set.add('BUENOS AIRES'); set.add('CABA'); }
       else (ZONA_PROVINCIAS[z] || []).forEach(p => set.add(p));
     });
     provs = [...set].sort();
@@ -514,6 +527,7 @@ function populateLocalidades() {
     byZona = new Set();
     zonas.forEach(z => {
       if (z === ZONA_PACHECO) ZONA_PACHECO_LOCS.forEach(l => byZona.add(l));
+      else if (z === 'AMBA') AMBA_LOCS.forEach(l => byZona.add(l));
       else (ZONA_LOCALIDADES[z] || []).forEach(l => byZona.add(l));
     });
   }
