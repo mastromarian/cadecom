@@ -745,7 +745,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
 
   const box = (title, color, bullets) => {
     const lis = bullets.slice(0,10).map(b => `<li style="margin-bottom:4px">${b}</li>`).join('') || '<li style="color:#999">Sin datos</li>';
-    return `<div style="border:1px solid #e0e6f2;border-radius:8px;overflow:hidden;min-width:0">
+    return `<div style="border:1px solid #e0e6f2;border-radius:8px;overflow:hidden;min-width:0;flex:0 0 auto">
       <div style="background:${color};color:#fff;padding:6px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${title}</div>
       <ul style="margin:0;padding:8px 8px 8px 22px;font-size:11px;line-height:1.5;color:#1a1a2e">${lis}</ul>
     </div>`;
@@ -755,7 +755,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   const totA = allFiltered.reduce((s,r) => s + (r[mA]||0), 0);
   const totB = allFiltered.reduce((s,r) => s + (r[mB]||0), 0);
   const tCls = totB > totA ? 'pos' : totB < totA ? 'neg' : '';
-  const totalCard = `<div style="border:1px solid #cdd6e8;border-radius:8px;background:#f5f7fc;padding:8px 12px">
+  const totalCard = `<div style="border:1px solid #cdd6e8;border-radius:8px;background:#f5f7fc;padding:8px 12px;flex:0 0 auto">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#667;margin-bottom:5px">Total patentado</div>
       <div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 0"><span style="color:#555">${lA}</span><b>${nf(totA)}</b></div>
       <div style="display:flex;justify-content:space-between;font-size:13px;padding:1px 0"><span style="color:#333;font-weight:600">${lB}</span><b style="font-size:14px">${nf(totB)}</b></div>
