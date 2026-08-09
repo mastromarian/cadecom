@@ -432,8 +432,10 @@ function marcaItems() {
   const all = [...new Map(RAW_DATA.map(r => [r.marca.toUpperCase(), r.marca])).values()];
   const pinnedSet = new Set(PINNED_MARCAS);
   const pinned = PINNED_MARCAS.filter(m => all.includes(m));
+  // Top 20 por volumen del ÚLTIMO MES disponible (no del acumulado)
+  const lastMonth = (typeof ALL_MONTHS !== 'undefined' && ALL_MONTHS.length) ? ALL_MONTHS[ALL_MONTHS.length - 1] : null;
   const vol = {};
-  RAW_DATA.forEach(r => { vol[r.marca] = (vol[r.marca] || 0) + (r.total || 0); });
+  RAW_DATA.forEach(r => { vol[r.marca] = (vol[r.marca] || 0) + (lastMonth ? (r[lastMonth] || 0) : (r.total || 0)); });
   const nonPinned = all.filter(m => !pinnedSet.has(m));
   const top20 = [...nonPinned].sort((a, b) => (vol[b] || 0) - (vol[a] || 0)).slice(0, 20).sort((a, b) => a.localeCompare(b));
   const top20Set = new Set(top20);
