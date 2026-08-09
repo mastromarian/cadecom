@@ -136,7 +136,8 @@ header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-trans
         <li><b style="color:#8a6d00">Fecha hasta</b> varía según el período.</li>
       </ul>
       <div class="guia">
-        <div class="g-field"><span class="g-lbl">Fecha desde</span><span class="g-val hl">01/01/AAAA (1° de enero)</span></div>
+        <div class="g-field"><span class="g-lbl">Fecha desde</span><span class="g-val hl">01/01/<span id="fd-anio">AAAA</span> (1° de enero)</span></div>
+        <script>document.getElementById('fd-anio').textContent = new Date().getFullYear();</script>
         <div class="g-field"><span class="g-lbl">Fecha hasta</span><span class="g-val var">fin del período (ej. 30/06/2026)</span></div>
         <div class="g-field"><span class="g-lbl">Agrupador principal</span><span class="g-val hl">Localidad</span></div>
         <div class="g-field"><span class="g-lbl">Agrupador adicional</span><span class="g-val hl">Modelo</span></div>
