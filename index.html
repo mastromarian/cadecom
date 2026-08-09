@@ -343,11 +343,13 @@ const MS_SEP = '__sep__';   // ítem separador (divisor visual, no seleccionable
 // Orden fijo de cilindradas
 const CIL_ORDER = ['Hasta 110 cc', '111-150 cc', '151-250 cc', '251-500 cc', 'Más de 500 cc'];
 
-// Zona Norte: agrupación virtual (subconjunto de AMBA) por localidad cabecera de partido.
-// "Vicente López" figura en la base como OLIVOS; "Gral. San Martín" como SAN MARTIN.
-const ZONA_NORTE = 'ZONA NORTE';
-const ZONA_NORTE_LOCS = ['SAN ISIDRO', 'SAN FERNANDO', 'TIGRE', 'ESCOBAR', 'PILAR', 'JOSE C. PAZ', 'MALVINAS ARGENTINAS', 'SAN MIGUEL', 'SAN MARTIN', 'OLIVOS', 'ZARATE', 'CAMPANA'];
-const ZN_SET = new Set(ZONA_NORTE_LOCS);
+// Zona Pacheco: agrupación virtual (subconjunto de la provincia de Buenos Aires) por
+// localidad cabecera de partido. "Vicente López" figura en la base como OLIVOS;
+// "Gral. San Martín" como SAN MARTIN. Las localidades chicas del corredor (Del Viso,
+// Garín, Maschwitz, Benavídez, Don Torcuato, etc.) ya quedan cubiertas por su partido.
+const ZONA_PACHECO = 'ZONA PACHECO';
+const ZONA_PACHECO_LOCS = ['SAN ISIDRO', 'SAN FERNANDO', 'TIGRE', 'ESCOBAR', 'PILAR', 'JOSE C. PAZ', 'MALVINAS ARGENTINAS', 'SAN MIGUEL', 'SAN MARTIN', 'OLIVOS', 'ZARATE', 'CAMPANA', 'CAPILLA DEL SENOR'];
+const ZP_SET = new Set(ZONA_PACHECO_LOCS);
 
 // Repuebla las listas dependientes cuando cambia un filtro (cascada)
 function refreshDependents(key) {
@@ -421,7 +423,7 @@ document.addEventListener('click', e => {
 function matchZona(r) {
   if (msState.zona.size === 0) return true;
   if (msState.zona.has(r.zona)) return true;
-  if (msState.zona.has(ZONA_NORTE) && ZN_SET.has(r.localidad)) return true;
+  if (msState.zona.has(ZONA_PACHECO) && ZP_SET.has(r.localidad)) return true;
   return false;
 }
 
@@ -456,7 +458,7 @@ function initFilters() {
 
   // AMBA y Zona Norte arriba, luego separador, luego el resto de las zonas
   const otherZonas = Object.keys(ZONA_LOCALIDADES).filter(z => z !== 'AMBA').sort();
-  buildMsList('zona', ['AMBA', ZONA_NORTE, MS_SEP, ...otherZonas]);
+  buildMsList('zona', ['AMBA', ZONA_PACHECO, MS_SEP, ...otherZonas]);
 
   populateProvincias();
   populateLocalidades();
@@ -491,7 +493,7 @@ function populateProvincias() {
   } else {
     const set = new Set();
     zonas.forEach(z => {
-      if (z === ZONA_NORTE) set.add('BUENOS AIRES');
+      if (z === ZONA_PACHECO) set.add('BUENOS AIRES');
       else (ZONA_PROVINCIAS[z] || []).forEach(p => set.add(p));
     });
     provs = [...set].sort();
@@ -501,21 +503,32 @@ function populateProvincias() {
   updateMsTrigger('provincia');
 }
 
-// Localidades disponibles según provincias (o, en su defecto, zonas) seleccionadas
+// Localidades disponibles: intersección de las zonas Y las provincias seleccionadas.
+// Así, AMBA + Buenos Aires muestra solo las localidades de AMBA (no toda la provincia).
 function populateLocalidades() {
-  const provs = [...msState.provincia];
   const zonas = [...msState.zona];
-  let locs = [];
-  if (provs.length > 0) {
-    provs.forEach(p => (PROVINCIA_LOCALIDADES[p] || []).forEach(l => locs.push(l)));
-  } else if (zonas.length > 0) {
+  const provs = [...msState.provincia];
+
+  let byZona = null;
+  if (zonas.length > 0) {
+    byZona = new Set();
     zonas.forEach(z => {
-      if (z === ZONA_NORTE) ZONA_NORTE_LOCS.forEach(l => locs.push(l));
-      else (ZONA_LOCALIDADES[z] || []).forEach(l => locs.push(l));
+      if (z === ZONA_PACHECO) ZONA_PACHECO_LOCS.forEach(l => byZona.add(l));
+      else (ZONA_LOCALIDADES[z] || []).forEach(l => byZona.add(l));
     });
-  } else {
-    locs = Object.values(PROVINCIA_LOCALIDADES).flat();
   }
+  let byProv = null;
+  if (provs.length > 0) {
+    byProv = new Set();
+    provs.forEach(p => (PROVINCIA_LOCALIDADES[p] || []).forEach(l => byProv.add(l)));
+  }
+
+  let locs;
+  if (byZona && byProv)      locs = [...byZona].filter(l => byProv.has(l));
+  else if (byZona)           locs = [...byZona];
+  else if (byProv)           locs = [...byProv];
+  else                       locs = Object.values(PROVINCIA_LOCALIDADES).flat();
+
   locs = [...new Set(locs)].sort();
   msState.localidad.forEach(l => { if (!locs.includes(l)) msState.localidad.delete(l); });
   buildMsList('localidad', locs);
