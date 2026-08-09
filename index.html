@@ -343,6 +343,9 @@ const MS_SEP = '__sep__';   // ítem separador (divisor visual, no seleccionable
 // Orden fijo de cilindradas
 const CIL_ORDER = ['Hasta 110 cc', '111-150 cc', '151-250 cc', '251-500 cc', 'Más de 500 cc'];
 
+// Marcas fijadas arriba del filtro (separadas del resto)
+const PINNED_MARCAS = ['YAMAHA', 'VOGE', 'HERO', 'MOTOMEL', 'SIAM', 'TVS', 'GAF'];
+
 // Zona Pacheco: agrupación virtual (subconjunto de la provincia de Buenos Aires) por
 // localidad cabecera de partido. "Vicente López" figura en la base como OLIVOS;
 // "Gral. San Martín" como SAN MARTIN. Las localidades chicas del corredor (Del Viso,
@@ -459,16 +462,26 @@ function getFilteredGlobal() {
   );
 }
 
+// Ítems del filtro Marca: las fijadas (PINNED_MARCAS) arriba, separador, luego el resto
+function marcaItems() {
+  const all = [...new Map(RAW_DATA.map(r => [r.marca.toUpperCase(), r.marca])).values()].sort();
+  const pinned = PINNED_MARCAS.filter(m => all.includes(m));
+  const rest = all.filter(m => !pinned.includes(m));
+  return pinned.length ? [...pinned, MS_SEP, ...rest] : rest;
+}
+// Ítems del filtro Cilindrada: orden fijo + separador + Sin categoría al final
+function cilItems() {
+  const present = new Set(RAW_DATA.map(r => r.cilindrada));
+  const cats = CIL_ORDER.filter(c => present.has(c));
+  if (present.has('Sin categoría')) cats.push(MS_SEP, 'Sin categoría');
+  return cats;
+}
+
 function initFilters() {
-  const marcas = [...new Map(RAW_DATA.map(r => [r.marca.toUpperCase(), r.marca])).values()].sort();
-  buildMsList('marca', marcas);
+  buildMsList('marca', marcaItems());
+  buildMsList('cil', cilItems());
 
-  const cilPresent = new Set(RAW_DATA.map(r => r.cilindrada));
-  const cats = CIL_ORDER.filter(c => cilPresent.has(c));
-  if (cilPresent.has('Sin categoría')) cats.push(MS_SEP, 'Sin categoría');
-  buildMsList('cil', cats);
-
-  // AMBA y Zona Norte arriba, luego separador, luego el resto de las zonas
+  // AMBA y Zona Pacheco arriba, luego separador, luego el resto de las zonas
   const otherZonas = Object.keys(ZONA_LOCALIDADES).filter(z => z !== 'AMBA').sort();
   buildMsList('zona', ['AMBA', ZONA_PACHECO, MS_SEP, ...otherZonas]);
 
@@ -1050,12 +1063,9 @@ updateInsights();
 function onHistoriaLoaded() {
   // Refrescar listas (pueden aparecer marcas/cilindradas/modelos solo históricos),
   // preservando las selecciones actuales del usuario
-  const marcas = [...new Map(RAW_DATA.map(r => [r.marca.toUpperCase(), r.marca])).values()].sort();
-  buildMsList('marca', marcas);
+  buildMsList('marca', marcaItems());
   updateMsTrigger('marca');
-  const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
-  cats.push('Sin categoría');
-  buildMsList('cil', cats);
+  buildMsList('cil', cilItems());
   updateMsTrigger('cil');
   populateProvincias();
   populateLocalidades();
