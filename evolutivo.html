@@ -129,6 +129,7 @@ header p  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
   display: inline-block; background: #2E5FA3; color: #fff;
   border-radius: 10px; font-size: 10px; padding: 1px 6px; margin-left: 4px;
 }
+.ms-sep { height: 0; border-top: 1px solid #d3dcea; margin: 4px 8px; }
 
 /* MAIN */
 .main { max-width: 1400px; margin: 0 auto; padding: 20px 20px; }
@@ -432,24 +433,43 @@ let chartEvol = null, chartEvolCil = null;
 const msState = { marca: new Set(), modelo: new Set(), cil: new Set() };
 const msAllItems = { marca: [], modelo: [], cil: [] };
 
+const MS_SEP = '__sep__';   // ítem separador (divisor visual, no seleccionable)
+const msItemHtml = key => v =>
+  v === MS_SEP ? '<div class="ms-sep"></div>' :
+  `<label class="ms-item">
+      <input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span>
+    </label>`;
+
+// Marcas fijadas arriba del filtro (igual que en Variaciones)
+const PINNED_MARCAS = ['YAMAHA', 'VOGE', 'HERO', 'MOTOMEL', 'SIAM', 'TVS', 'GAF'];
+// pineadas ·sep· top 20 por volumen (alfabético) ·sep· resto (alfabético)
+function marcaItems() {
+  const all = [...new Set(RAW_DATA.map(r => r.marca))];
+  const pinnedSet = new Set(PINNED_MARCAS);
+  const pinned = PINNED_MARCAS.filter(m => all.includes(m));
+  const vol = {};
+  RAW_DATA.forEach(r => { vol[r.marca] = (vol[r.marca] || 0) + (r.total || 0); });
+  const nonPinned = all.filter(m => !pinnedSet.has(m));
+  const top20 = [...nonPinned].sort((a, b) => (vol[b] || 0) - (vol[a] || 0)).slice(0, 20).sort((a, b) => a.localeCompare(b));
+  const top20Set = new Set(top20);
+  const rest = nonPinned.filter(m => !top20Set.has(m)).sort((a, b) => a.localeCompare(b));
+  const out = [];
+  if (pinned.length) out.push(...pinned, MS_SEP);
+  out.push(...top20);
+  if (rest.length) out.push(MS_SEP, ...rest);
+  return out;
+}
+
 function buildMsList(key, items) {
   msAllItems[key] = items;
   const list = document.getElementById(`ms-${key}-list`);
-  list.innerHTML = items.map(v =>
-    `<label class="ms-item">
-      <input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span>
-    </label>`
-  ).join('');
+  list.innerHTML = items.map(msItemHtml(key)).join('');
 }
 
 function filterMsList(key, q) {
-  const items = msAllItems[key].filter(v => v.toLowerCase().includes(q.toLowerCase()));
+  const items = msAllItems[key].filter(v => v !== MS_SEP && v.toLowerCase().includes(q.toLowerCase()));
   const list = document.getElementById(`ms-${key}-list`);
-  list.innerHTML = items.map(v =>
-    `<label class="ms-item">
-      <input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span>
-    </label>`
-  ).join('');
+  list.innerHTML = items.map(msItemHtml(key)).join('');
 }
 
 function onMsChange(key, value, checked) {
@@ -567,8 +587,7 @@ function initFilters() {
   document.getElementById('f-desde-month').addEventListener('change', update);
   document.getElementById('f-hasta-month').addEventListener('change', update);
 
-  const marcas = [...new Set(RAW_DATA.map(r => r.marca))].sort();
-  buildMsList('marca', marcas);
+  buildMsList('marca', marcaItems());
   const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
   cats.push('Sin categoría');
   buildMsList('cil', cats);
@@ -1096,8 +1115,7 @@ update();
 // --- Carga diferida de la historia (2013-2023) en segundo plano ---
 function onHistoriaLoaded() {
   // Refrescar listas con marcas/cilindradas/modelos que solo existen en la historia
-  const marcas = [...new Set(RAW_DATA.map(r => r.marca))].sort();
-  buildMsList('marca', marcas);
+  buildMsList('marca', marcaItems());
   const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
   cats.push('Sin categoría');
   buildMsList('cil', cats);
