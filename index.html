@@ -751,7 +751,19 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
     </div>`;
   };
 
+  // Total de motos patentadas en los meses seleccionados (respeta todos los filtros)
+  const totA = allFiltered.reduce((s,r) => s + (r[mA]||0), 0);
+  const totB = allFiltered.reduce((s,r) => s + (r[mB]||0), 0);
+  const tCls = totB > totA ? 'pos' : totB < totA ? 'neg' : '';
+  const totalCard = `<div style="border:1px solid #cdd6e8;border-radius:8px;background:#f5f7fc;padding:8px 12px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#667;margin-bottom:5px">Total patentado</div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 0"><span style="color:#555">${lA}</span><b>${nf(totA)}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:1px 0"><span style="color:#333;font-weight:600">${lB}</span><b style="font-size:14px">${nf(totB)}</b></div>
+      <div style="text-align:right;font-size:11px;margin-top:2px" class="${tCls}">${pctStr(totA,totB)}</div>
+    </div>`;
+
   document.getElementById('auto-insights').innerHTML =
+    totalCard +
     box('Marcas', '#4472C4', marcaBullets) +
     box('Modelos', '#2e8b57', modeloBullets) +
     box('Cilindrada', '#7b5cb8', cilBullets) +
