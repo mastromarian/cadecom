@@ -938,7 +938,7 @@ function updateInsights() {
   const mkHead = (tbl) => `<tr>
     <th style="text-align:center;width:24px">#</th>
     <th style="text-align:left;width:72px;max-width:72px;${thStyle(tbl,'marca')}">Marca${arrow(tbl,'marca')}</th>
-    <th style="text-align:left;width:85px;max-width:85px;${thStyle(tbl,'modelo')}">Modelo${arrow(tbl,'modelo')}</th>
+    <th style="text-align:left;width:110px;max-width:110px;${thStyle(tbl,'modelo')}">Modelo${arrow(tbl,'modelo')}</th>
     <th style="text-align:right;width:40px;${thStyle(tbl,'uA')}">${lA}${arrow(tbl,'uA')}</th>
     <th style="text-align:right;width:40px;${thStyle(tbl,'uB')}">${lB}${arrow(tbl,'uB')}</th>
     <th style="text-align:right;white-space:nowrap;width:38px;${thStyle(tbl,'varAbs')}">Var #${arrow(tbl,'varAbs')}</th>
@@ -955,7 +955,7 @@ function updateInsights() {
           <span style="font-weight:700;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.marca}">${r.marca}</span>
         </span>
       </td>
-      <td style="text-align:left;max-width:85px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.modelo}">${r.modelo}</td>
+      <td style="text-align:left;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.modelo}">${r.modelo}</td>
       <td style="text-align:right">${r.uA.toLocaleString('es-AR')}</td>
       <td style="text-align:right;font-weight:700">${r.uB.toLocaleString('es-AR')}</td>
       <td class="${cls}" style="text-align:right">${sign}${r.varAbs.toLocaleString('es-AR')}</td>
