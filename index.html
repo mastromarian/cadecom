@@ -274,17 +274,16 @@ thead th { position: relative; user-select: none; }
   <!-- Variaciones del mes -->
   <div class="card" style="margin-bottom:20px">
 
-    <!-- Insights automáticos -->
-    <div id="insights-title" style="font-size:13px;font-weight:700;color:#1F3864;margin-bottom:10px"></div>
-    <div id="auto-insights" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8edf8"></div>
-
-    <div style="display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:10px 16px;align-items:start;margin-bottom:20px;overflow:hidden">
+    <!-- 3 columnas: Resumen de novedades | Marcas | Modelos -->
+    <div style="display:grid;grid-template-columns:minmax(0,300px) minmax(0,360px) minmax(0,1fr);gap:10px 16px;align-items:start;margin-bottom:20px;overflow:hidden">
 
       <!-- Fila 1: headers de sección -->
+      <div id="insights-title" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px"></div>
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px">Marcas</div>
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px">Modelos <span style="font-weight:600;text-transform:none;letter-spacing:0;opacity:.85">— ordenados por volumen del último mes</span></div>
 
-      <!-- Fila 2: tablas (todas las filas, con scroll vertical) -->
+      <!-- Fila 2: contenido -->
+      <div id="auto-insights" class="tbl-scroll" style="display:flex;flex-direction:column;gap:10px;min-width:0"></div>
       <div class="tbl-wrap tbl-scroll" style="min-width:0"><table><thead id="ins-brands-head"></thead><tbody id="ins-brands-body"></tbody></table></div>
       <div class="tbl-wrap tbl-scroll" style="min-width:0"><table><thead id="ins-models-head"></thead><tbody id="ins-models-body"></tbody></table></div>
 
