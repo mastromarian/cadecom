@@ -755,11 +755,40 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   const totA = allFiltered.reduce((s,r) => s + (r[mA]||0), 0);
   const totB = allFiltered.reduce((s,r) => s + (r[mB]||0), 0);
   const tCls = totB > totA ? 'pos' : totB < totA ? 'neg' : '';
+
+  // Si el Mes B es un mes en curso (incompleto según LAST_UPDATE), normalizar:
+  // - prorratear el mes previo a los mismos días transcurridos
+  // - proyectar el mes en curso a mes completo
+  let normHtml = '';
+  const luM = (typeof LAST_UPDATE === 'string') ? LAST_UPDATE.match(/(\d{2})\/(\d{2})\/(\d{4})/) : null;
+  if (luM) {
+    const luDay = +luM[1], luMon = +luM[2], luYear = +luM[3];
+    const [bMon, bYear] = mB.split('-').map(Number);
+    const [aMon, aYear] = mA.split('-').map(Number);
+    const dim = (m, y) => new Date(y, m, 0).getDate();   // días del mes m (1-12) del año y
+    const daysB = dim(bMon, bYear);
+    if (bMon === luMon && bYear === luYear && luDay > 0 && luDay < daysB) {
+      const N = luDay, daysA = dim(aMon, aYear);
+      const aNorm = Math.round(totA * N / daysA);         // mes previo a N días
+      const bProj = Math.round(totB * daysB / N);         // proyección mes en curso a mes completo
+      const fairPct = aNorm ? (totB - aNorm) / aNorm * 100 : null;
+      const fCls = fairPct > 0 ? 'pos' : fairPct < 0 ? 'neg' : '';
+      const fStr = fairPct === null ? '—' : `${fairPct > 0 ? '+' : ''}${fairPct.toFixed(0)}%`;
+      normHtml = `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #c8d0e0;font-size:11px">
+        <div style="color:#999;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Normalizado · ${N} días</div>
+        <div style="display:flex;justify-content:space-between;padding:1px 0"><span style="color:#555">${lA} a ${N} días</span><b>${nf(aNorm)}</b></div>
+        <div style="display:flex;justify-content:space-between;padding:1px 0"><span style="color:#555">${lB} vs prev.</span><b class="${fCls}">${fStr}</b></div>
+        <div style="display:flex;justify-content:space-between;padding:1px 0"><span style="color:#555">${lB} proyect.</span><b>${nf(bProj)}</b></div>
+      </div>`;
+    }
+  }
+
   const totalCard = `<div style="border:1px solid #cdd6e8;border-radius:8px;background:#f5f7fc;padding:8px 12px;flex:0 0 auto">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#667;margin-bottom:5px">Total patentado</div>
       <div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 0"><span style="color:#555">${lA}</span><b>${nf(totA)}</b></div>
       <div style="display:flex;justify-content:space-between;font-size:13px;padding:1px 0"><span style="color:#333;font-weight:600">${lB}</span><b style="font-size:14px">${nf(totB)}</b></div>
       <div style="text-align:right;font-size:11px;margin-top:2px" class="${tCls}">${pctStr(totA,totB)}</div>
+      ${normHtml}
     </div>`;
 
   document.getElementById('auto-insights').innerHTML =
