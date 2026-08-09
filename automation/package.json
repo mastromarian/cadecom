@@ -1,0 +1,16 @@
+{
+  "name": "cadecom-sync",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "login": "node login-cadecom.mjs",
+    "download": "node download-cadecom.mjs",
+    "sync": "node sync-cadecom.mjs",
+    "full": "node run-full.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.61.1",
+    "xlsx": "^0.18.5"
+  }
+}
