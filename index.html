@@ -115,6 +115,7 @@ select:disabled {
 .card { background: #fff; border-radius: 10px; padding: 18px 22px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 20px; }
 .card h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1F3864; margin-bottom: 14px; }
 .tbl-wrap { overflow-x: hidden; }
+.tbl-scroll { max-height: 68vh; overflow-y: auto; overflow-x: hidden; }
 table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
 thead th {
   background: #1F3864; color: #fff; padding: 6px 8px;
@@ -267,36 +268,6 @@ thead th { position: relative; user-select: none; }
   <button class="btn-reset" onclick="resetFilters()">Limpiar filtros</button>
 </div>
 
-<!-- SECCIÓN VISUALIZACIÓN -->
-<div style="display:flex; align-items:center; gap:20px; padding:12px 15px; background:#f0f4ff; border-bottom:1px solid #d0daf5; font-size:13px">
-  <span style="font-weight:600; color:#667">VISUALIZACIÓN</span>
-  <div class="filter-group" style="min-width:auto; margin:0">
-    <label>Top marcas</label>
-    <select id="ins-topn-brands" style="width:72px" onchange="updateInsights()">
-      <option value="5">Top 5</option>
-      <option value="10" selected>Top 10</option>
-      <option value="15">Top 15</option>
-      <option value="20">Top 20</option>
-      <option value="9999">Todas</option>
-    </select>
-  </div>
-  <div class="filter-group" style="min-width:auto; margin:0">
-    <label>Top modelos</label>
-    <select id="ins-topn" style="width:72px" onchange="updateInsights()">
-      <option value="5">Top 5</option>
-      <option value="10" selected>Top 10</option>
-      <option value="15">Top 15</option>
-      <option value="20">Top 20</option>
-      <option value="50">Top 50</option>
-      <option value="100">Top 100</option>
-      <option value="9999">Todos</option>
-    </select>
-  </div>
-  <div class="filter-group" style="min-width:auto; margin:0">
-    <label>Mín. unidades</label>
-    <input type="number" id="ins-min" value="1" min="1" style="width:56px;border:1px solid #ccd5e8;border-radius:6px;padding:5px 6px;font-size:12px;text-align:center;background:#f7f9fd" onchange="updateInsights()">
-  </div>
-</div>
 
 <div class="main">
 
@@ -307,21 +278,15 @@ thead th { position: relative; user-select: none; }
     <div id="insights-title" style="font-size:13px;font-weight:700;color:#1F3864;margin-bottom:10px"></div>
     <div id="auto-insights" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8edf8"></div>
 
-    <div style="display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr) minmax(0,1fr);gap:10px 16px;align-items:start;margin-bottom:20px;overflow:hidden">
+    <div style="display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:10px 16px;align-items:start;margin-bottom:20px;overflow:hidden">
 
       <!-- Fila 1: headers de sección -->
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px">Marcas</div>
-      <div style="grid-column:2/4;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px">Modelos</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px">Modelos <span style="font-weight:600;text-transform:none;letter-spacing:0;opacity:.85">— ordenados por volumen del último mes</span></div>
 
-      <!-- Fila 2: sub-headers -->
-      <div></div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#e74c3c">📉 Peor variación</div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#27ae60">📈 Mejor variación</div>
-
-      <!-- Fila 3: tablas -->
-      <div class="tbl-wrap" style="min-width:0"><table><thead id="ins-brands-head"></thead><tbody id="ins-brands-body"></tbody></table></div>
-      <div class="tbl-wrap" style="min-width:0"><table><thead id="ins-worst-head"></thead><tbody id="ins-worst-body"></tbody></table></div>
-      <div class="tbl-wrap" style="min-width:0"><table><thead id="ins-best-head"></thead><tbody id="ins-best-body"></tbody></table></div>
+      <!-- Fila 2: tablas (todas las filas, con scroll vertical) -->
+      <div class="tbl-wrap tbl-scroll" style="min-width:0"><table><thead id="ins-brands-head"></thead><tbody id="ins-brands-body"></tbody></table></div>
+      <div class="tbl-wrap tbl-scroll" style="min-width:0"><table><thead id="ins-models-head"></thead><tbody id="ins-models-body"></tbody></table></div>
 
     </div>
   </div>
@@ -797,8 +762,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
 // --- Sort state per table ---
 const sortState = {
   brands: { col: 'b', dir: 1 },
-  worst:  { col: 'varPct', dir: -1 },
-  best:   { col: 'varPct', dir: 1 },
+  models: { col: 'uB', dir: 1 },   // por defecto: volumen del último mes (Mes B), mayor→menor
 };
 function sortBy(table, col) {
   if (sortState[table].col === col) sortState[table].dir *= -1;
@@ -825,9 +789,7 @@ function arrow(table, col) {
 function updateInsights() {
   const mA        = document.getElementById('ins-month-a').value;
   const mB        = document.getElementById('ins-month-b').value;
-  const topN      = parseInt(document.getElementById('ins-topn').value) || 10;
-  const topBrands = parseInt(document.getElementById('ins-topn-brands').value) || 15;
-  const minU      = parseInt(document.getElementById('ins-min').value) || 1;
+  const minU      = 1;   // sin control de mínimo: se muestran todas las filas con ventas
   if (!mA || !mB) return;
   const lA = MONTH_LABELS[MONTHS.indexOf(mA)];
   const lB = MONTH_LABELS[MONTHS.indexOf(mB)];
@@ -847,8 +809,8 @@ function updateInsights() {
   // Totales del mercado completo (SIN filtro de mínimo)
   const mktA = allBrandRows.reduce((s,b)=>s+b.a,0);
   const mktB = allBrandRows.reduce((s,b)=>s+b.b,0);
-  // Filas mostradas: aplica filtro de mínimo
-  const brands = allBrandRows.filter(b => b.b >= minU).slice(0, topBrands);
+  // Filas mostradas: todas las marcas con ventas en el último mes (con scroll)
+  const brands = allBrandRows.filter(b => b.b >= minU);
 
   const sortedBrands = sortArr(brands, sortState.brands.col, sortState.brands.dir);
 
@@ -948,10 +910,9 @@ function updateInsights() {
       <td class="${cls}" style="text-align:right">${sign}${r.varAbs.toLocaleString('es-AR')}</td>
       <td class="${cls}" style="text-align:right;font-weight:700">${pct}</td></tr>`;
   }).join('');
-  // Backend: Ordenar TODOS los registros por la columna seleccionada (VAR % por default)
-  // Frontend: Mostrar solo Top N
-  const worst = sortArr(results.sort((a,b)=>(a.varPct??-Infinity)-(b.varPct??-Infinity)), sortState.worst.col, sortState.worst.dir).slice(0, topN);
-  const best  = sortArr(results.sort((a,b)=>(b.varPct??-Infinity)-(a.varPct??-Infinity)), sortState.best.col,  sortState.best.dir).slice(0, topN);
+  // Tabla única de modelos: todas las filas, ordenadas por la columna elegida
+  // (por defecto, volumen del último mes / Mes B, de mayor a menor)
+  const models = sortArr(results, sortState.models.col, sortState.models.dir);
 
   // Totales globales SIN filtro de mínimo (mismo universo que marcas)
   const allA = allFiltered.reduce((s,r)=>s+(r[mA]||0),0);
@@ -984,10 +945,8 @@ function updateInsights() {
       </tr>`;
   }
 
-  document.getElementById('ins-worst-head').innerHTML=mkHead('worst');
-  document.getElementById('ins-worst-body').innerHTML=mkRows(worst)+mkTotal(worst);
-  document.getElementById('ins-best-head').innerHTML =mkHead('best');
-  document.getElementById('ins-best-body').innerHTML =mkRows(best)+mkTotal(best);
+  document.getElementById('ins-models-head').innerHTML = mkHead('models');
+  document.getElementById('ins-models-body').innerHTML = mkRows(models) + mkTotal(models);
 
 
   generateAutoInsights(allFiltered, mA, mB, lA, lB);
