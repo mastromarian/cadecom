@@ -275,12 +275,12 @@ thead th { position: relative; user-select: none; }
   <div class="card" style="margin-bottom:20px">
 
     <!-- 3 columnas: Resumen de novedades | Marcas | Modelos -->
-    <div style="display:grid;grid-template-columns:minmax(0,300px) minmax(0,360px) minmax(0,1fr);gap:10px 16px;align-items:start;margin-bottom:20px;overflow:hidden">
+    <div style="display:grid;grid-template-columns:minmax(0,300px) minmax(0,470px) minmax(0,480px);gap:10px 16px;align-items:start;margin-bottom:20px;overflow:hidden">
 
       <!-- Fila 1: headers de sección -->
-      <div id="insights-title" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px"></div>
+      <div id="insights-title" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#445;background:#e2e8f0;padding:5px 10px;border-radius:4px"></div>
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px">Marcas</div>
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#4472C4;padding:5px 10px;border-radius:4px">Modelos <span style="font-weight:600;text-transform:none;letter-spacing:0;opacity:.85">— ordenados por volumen del último mes</span></div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#2e8b57;padding:5px 10px;border-radius:4px">Modelos</div>
 
       <!-- Fila 2: contenido -->
       <div id="auto-insights" class="tbl-scroll" style="display:flex;flex-direction:column;gap:10px;min-width:0"></div>
@@ -752,9 +752,9 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   };
 
   document.getElementById('auto-insights').innerHTML =
-    box('Cilindrada', '#7b5cb8', cilBullets) +
     box('Marcas', '#4472C4', marcaBullets) +
     box('Modelos', '#2e8b57', modeloBullets) +
+    box('Cilindrada', '#7b5cb8', cilBullets) +
     box('Zonas', '#d68910', zonaBullets);
 }
 
