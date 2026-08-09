@@ -1,0 +1,11 @@
+# Datos generados: viven en Supabase Storage, no en el repo.
+# Todas las páginas los cargan desde Supabase, así que publicarlos acá
+# solo sumaba ~29 MB por deploy y podía mostrar datos viejos.
+data.js
+data-historia.js
+
+# Automatización local: credenciales y sesión del navegador, nunca al repo
+automation/.env
+automation/node_modules/
+automation/out/
+automation/.chrome-cadecom/
