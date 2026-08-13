@@ -7,9 +7,14 @@
   const SUPABASE_URL  = 'https://cazdzwigtazmecixhuiw.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhemR6d2lndGF6bWVjaXhodWl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5ODQ3OTQsImV4cCI6MjA5NzU2MDc5NH0.gDpzVh5apPBpDujdRN8olJk93FxULHCrS49XOVxGwvU';
 
-  // Roles con acceso al tablero (los demás, ej. vendedor_*, quedan bloqueados)
-  const ADMIN_ROLES = new Set(['admin_total', 'admin_pueyrredon', 'admin_pacheco']);
-  const isAdmin = role => ADMIN_ROLES.has(role);
+  // Acceso al tablero: entran dueno / admin_* / gerencia_* (cualquier sucursal).
+  // Quedan bloqueados los vendedor_* y el perfil de solo lectura.
+  function isAdmin(role) {
+    const r = String(role || '').trim().toLowerCase();
+    if (!r || r === 'lectura') return false;
+    if (r.startsWith('vendedor')) return false;
+    return true;
+  }
 
   let sb = null;
   try {
