@@ -127,7 +127,6 @@
       chip.style.cssText = 'position:fixed;top:8px;right:10px;z-index:9000;display:flex;align-items:center;gap:8px;font-size:11px;color:#fff;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:999px;font-family:Arial,sans-serif;';
     }
     chip.innerHTML = '<span>' + (email || '') + '</span>' +
-      '<span style="font-weight:700;background:#fee2e2;color:#b91c1c;padding:1px 7px;border-radius:999px;font-size:10px;">ADMIN</span>' +
       '<button id="chip-logout" style="background:none;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:2px 8px;cursor:pointer;color:#fff;font-size:11px;font-family:inherit;">Salir</button>';
     (slot || document.body).appendChild(chip);
     chip.querySelector('#chip-logout').addEventListener('click', logout);
