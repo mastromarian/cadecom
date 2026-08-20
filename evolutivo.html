@@ -14,16 +14,13 @@ body { font-family: Arial, sans-serif; background: #f0f3f8; color: #1a1a2e; font
 
 /* HEADER */
 header {
-  background: #0a0a0a;
-  color: #fff;
-  padding: 10px 24px;
-  display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 3px solid #e3000f;
+  background: #fff; color: #0f172a; padding: 0 26px;
+  display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+  border-bottom: 1px solid #e2e8f0; min-height: 60px;
   position: sticky; top: 0; z-index: 100;
 }
-header h1 { font-size: 18px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #fff; }
-header p  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
-.badge { background: rgba(255,255,255,.12); border-radius: 20px; padding: 5px 14px; font-size: 11px; }
+.brand-logo { height: 34px; width: auto; display: block; flex-shrink: 0; }
+.appnav { display: flex; align-items: center; gap: 2px; flex: 1; flex-wrap: wrap; }
 /* Banner de última actualización (estilo ranking-meli) */
 .update-banner { display: inline-flex; align-items: center; gap: 6px;
   padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1.5px solid; }
@@ -33,24 +30,14 @@ header p  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .ub-stale { background: #fdeaea; color: #b3000f; border-color: #ff3b30; }
 
 /* NAV */
-.nav-bar {
-  background: #1a1a1a;
-  border-bottom: none;
-  padding: 0 24px;
-  display: flex; gap: 0;
-  position: sticky; top: 0; z-index: 99;
-}
 .nav-item {
-  display: inline-flex; align-items: center;
-  padding: 8px 16px;
-  font-size: 12px; font-weight: 600; color: #9ca3af;
-  text-decoration: none; white-space: nowrap;
-  border-bottom: 3px solid transparent;
+  font-size: 14px; font-weight: 600; color: #475569; text-decoration: none;
+  padding: 9px 12px; border-radius: 8px; white-space: nowrap; line-height: 1.4;
   transition: color .15s, background .15s;
 }
-.nav-item:hover { color: #fff; }
-.nav-item.active { color: #fff; background: #e3000f; }
-.nav-item.disabled { color: #555; cursor: default; pointer-events: none; }
+.nav-item:hover { color: #0f172a; background: #f8fafc; }
+.nav-item.active { color: #e3000f; background: #fff1f2; }
+.nav-item.disabled { color: #cbd5e1; cursor: default; pointer-events: none; }
 
 /* FILTERS BAR */
 .filters-bar {
@@ -273,20 +260,16 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
 </head>
 <body>
 
-<header style="align-items:flex-start;padding:8px 24px">
-  <div>
-    <h1>CADECOM</h1>
-    <div class="update-banner" id="update-banner" style="margin-top:5px"></div>
-  </div>
+<header>
+  <img src="logo.png" class="brand-logo" alt="Ciclofox">
+  <nav class="appnav">
+    <a href="index.html" class="nav-item">Variaciones del mes</a>
+    <a href="evolutivo.html" class="nav-item active">Evolutivo histórico</a>
+    <a href="basedatos.html" class="nav-item">Actualizar</a>
+  </nav>
+  <div class="update-banner" id="update-banner"></div>
   <div id="header-user"></div>
 </header>
-
-<!-- NAV -->
-<nav class="nav-bar">
-  <a href="index.html" class="nav-item">Variaciones del mes</a>
-  <a href="evolutivo.html" class="nav-item active">Evolutivo histórico</a>
-  <a href="basedatos.html" class="nav-item">Actualizar</a>
-</nav>
 
 <!-- FILTERS -->
 <div class="filters-bar">
@@ -1080,12 +1063,8 @@ function update() {
 // --- Sticky offsets ---
 function setStickyTops() {
   const header  = document.querySelector('header');
-  const nav     = document.querySelector('.nav-bar');
   const filters = document.querySelector('.filters-bar');
-  const hH = header.offsetHeight;
-  const nH = nav.offsetHeight;
-  nav.style.top     = hH + 'px';
-  filters.style.top = (hH + nH) + 'px';
+  if (header && filters) filters.style.top = header.offsetHeight + 'px';
 }
 window.addEventListener('load',   setStickyTops);
 window.addEventListener('resize', setStickyTops);

@@ -120,14 +120,14 @@
     const slot = document.getElementById('header-user');  // contenedor en el header
     const chip = document.createElement('div');
     if (slot) {
-      // Dentro del header (misma fila que el banner de actualización)
-      chip.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:11px;color:#fff;font-family:Arial,sans-serif;';
+      // Dentro del header blanco (misma fila que el banner de actualización)
+      chip.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;font-weight:600;font-family:Arial,sans-serif;';
     } else {
       // Fallback: pill flotante arriba a la derecha
-      chip.style.cssText = 'position:fixed;top:8px;right:10px;z-index:9000;display:flex;align-items:center;gap:8px;font-size:11px;color:#fff;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:999px;font-family:Arial,sans-serif;';
+      chip.style.cssText = 'position:fixed;top:8px;right:10px;z-index:9000;display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:4px 8px;border-radius:999px;font-family:Arial,sans-serif;';
     }
     chip.innerHTML = '<span>' + (email || '') + '</span>' +
-      '<button id="chip-logout" style="background:none;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:2px 8px;cursor:pointer;color:#fff;font-size:11px;font-family:inherit;">Salir</button>';
+      '<button id="chip-logout" style="background:none;border:1px solid #cbd5e1;border-radius:6px;padding:2px 8px;cursor:pointer;color:#475569;font-size:11px;font-weight:600;font-family:inherit;">Salir</button>';
     (slot || document.body).appendChild(chip);
     chip.querySelector('#chip-logout').addEventListener('click', logout);
   }
@@ -176,7 +176,7 @@
       window.__cadecomBypass = true;
       accessGranted = true;
       gate.remove();
-      const setChip = () => { const slot = document.getElementById('header-user'); if (slot) slot.innerHTML = '<span style="font-size:11px;color:#fff;opacity:.65">modo local</span>'; };
+      const setChip = () => { const slot = document.getElementById('header-user'); if (slot) slot.innerHTML = '<span style="font-size:11px;color:#94a3b8">modo local</span>'; };
       if (document.body) setChip(); else document.addEventListener('DOMContentLoaded', setChip);
       return;
     }
