@@ -33,7 +33,7 @@
   // ── Overlay de login (se inyecta de inmediato para que se vea al instante) ──
   const gate = document.createElement('div');
   gate.id = 'auth-gate';
-  gate.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Arial,sans-serif;';
+  gate.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;display:flex;align-items:center;justify-content:center;padding:20px;font-family:inherit;';
   gate.innerHTML =
     '<div style="background:#fff;padding:30px 28px;border-radius:14px;width:340px;max-width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);border-top:4px solid #2E5FA3;">' +
       '<div style="font-weight:800;font-size:17px;margin-bottom:4px;color:#0f172a;">CADECOM — Iniciar sesión</div>' +
@@ -121,10 +121,10 @@
     const chip = document.createElement('div');
     if (slot) {
       // Dentro del header blanco (misma fila que el banner de actualización)
-      chip.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;font-weight:600;font-family:Arial,sans-serif;';
+      chip.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;font-weight:600;font-family:inherit;';
     } else {
       // Fallback: pill flotante arriba a la derecha
-      chip.style.cssText = 'position:fixed;top:8px;right:10px;z-index:9000;display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:4px 8px;border-radius:999px;font-family:Arial,sans-serif;';
+      chip.style.cssText = 'position:fixed;top:8px;right:10px;z-index:9000;display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:4px 8px;border-radius:999px;font-family:inherit;';
     }
     chip.innerHTML = '<span>' + (email || '') + '</span>' +
       '<button id="chip-logout" style="background:none;border:1px solid #cbd5e1;border-radius:6px;padding:2px 8px;cursor:pointer;color:#475569;font-size:11px;font-weight:600;font-family:inherit;">Salir</button>';
