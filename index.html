@@ -100,6 +100,10 @@ header p  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .ms-item span { text-align: left; }
 .ms-count { display: inline-block; background: #2E5FA3; color: #fff; border-radius: 10px; font-size: 10px; padding: 1px 6px; margin-left: 4px; }
 .ms-sep { height: 0; border-top: 1px solid #d3dcea; margin: 4px 8px; }
+.view-toggle { display: flex; border: 1px solid #ccd5e8; border-radius: 6px; overflow: hidden; height: 30px; }
+.view-btn { border: none; background: #f7f9fd; color: #556; font-size: 12px; font-weight: 600; padding: 0 12px; cursor: pointer; font-family: inherit; }
+.view-btn + .view-btn { border-left: 1px solid #ccd5e8; }
+.view-btn.active { background: #2E5FA3; color: #fff; }
 
 /* Filtros deshabilitados */
 select:disabled {
@@ -180,6 +184,13 @@ thead th { position: sticky; top: 0; user-select: none; }
   <div class="filter-group" style="min-width:auto">
     <label>Hasta</label>
     <select id="ins-month-b" style="width:90px" onchange="updateInsights()"></select>
+  </div>
+  <div class="filter-group" style="min-width:auto">
+    <label>Vista</label>
+    <div class="view-toggle">
+      <button id="view-real" class="view-btn active" onclick="setView('real')">Real</button>
+      <button id="view-norm" class="view-btn" onclick="setView('norm')" title="Prorratea el mes 'Desde' a los mismos días transcurridos del mes 'Hasta'">Normalizado</button>
+    </div>
   </div>
   <div class="filter-group">
     <label>Marca</label>
@@ -616,7 +627,7 @@ function brandLogoHtml(marca) {
 // --- Auto insights ---
 function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   // Helpers de formato
-  const nf = n => n.toLocaleString('es-AR');
+  const nf = n => Math.round(n).toLocaleString('es-AR');
   const pctStr = (a,b) => { if (!a) return b > 0 ? 'nuevo' : '—'; const p=(b-a)/a*100; return `${p>0?'+':''}${p.toFixed(0)}%`; };
   const vColor = (a,b) => b>a ? '#27ae60' : b<a ? '#e74c3c' : '#888';
   const vSpan = (a,b) => `<span style="color:${vColor(a,b)};font-weight:700">${pctStr(a,b)}</span>`;
@@ -626,7 +637,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   allFiltered.forEach(r => {
     const k = r.cilindrada || 'Sin categoría';
     if (!cilMap[k]) cilMap[k] = { a:0, b:0 };
-    cilMap[k].a += r[mA]||0; cilMap[k].b += r[mB]||0;
+    cilMap[k].a += (r[mA]||0)*NF_A; cilMap[k].b += r[mB]||0;
   });
   const cilOrder = ['Hasta 110 cc','111-150 cc','151-250 cc','251-500 cc','Más de 500 cc','Sin categoría'];
   const cilRows = Object.entries(cilMap)
@@ -643,7 +654,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
     const z = r.zona;
     if (!z || z === 'RUNA') return; // ignorar vacíos y RUNA
     if (!zonaMap[z]) zonaMap[z] = { a:0, b:0 };
-    zonaMap[z].a += r[mA]||0; zonaMap[z].b += r[mB]||0;
+    zonaMap[z].a += (r[mA]||0)*NF_A; zonaMap[z].b += r[mB]||0;
   });
   const zonaRows = Object.entries(zonaMap)
     .map(([name,v]) => ({ name, ...v }))
@@ -655,7 +666,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   const brandMap = {};
   allFiltered.forEach(r => {
     if (!brandMap[r.marca]) brandMap[r.marca] = { a:0, b:0 };
-    brandMap[r.marca].a += r[mA]||0; brandMap[r.marca].b += r[mB]||0;
+    brandMap[r.marca].a += (r[mA]||0)*NF_A; brandMap[r.marca].b += r[mB]||0;
   });
   const brandRows = Object.entries(brandMap)
     .map(([marca,v]) => ({ marca, a:v.a, b:v.b, varAbs:v.b-v.a, varPct:v.a?(v.b-v.a)/v.a*100:null }))
@@ -700,7 +711,7 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   allFiltered.forEach(r => {
     const k = `${r.marca}|${r.modelo}`;
     if (!modMap[k]) modMap[k] = { marca:r.marca, modelo:r.modelo, cil:r.cilindrada, a:0, b:0 };
-    modMap[k].a += r[mA]||0; modMap[k].b += r[mB]||0;
+    modMap[k].a += (r[mA]||0)*NF_A; modMap[k].b += r[mB]||0;
   });
   const modRows = Object.values(modMap)
     .map(m => ({ ...m, varAbs:m.b-m.a, varPct:m.a?(m.b-m.a)/m.a*100:null }));
@@ -765,34 +776,38 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   };
 
   // Total de motos patentadas en los meses seleccionados (respeta todos los filtros)
-  const totA = allFiltered.reduce((s,r) => s + (r[mA]||0), 0);
+  const totA = allFiltered.reduce((s,r) => s + ((r[mA]||0)*NF_A), 0);
   const totB = allFiltered.reduce((s,r) => s + (r[mB]||0), 0);
   const tCls = totB > totA ? 'pos' : totB < totA ? 'neg' : '';
 
-  // Si el Mes B es un mes en curso (incompleto según LAST_UPDATE), normalizar:
-  // - prorratear el mes previo a los mismos días transcurridos
-  // - proyectar el mes en curso a mes completo
   let normHtml = '';
-  const luM = (typeof LAST_UPDATE === 'string') ? LAST_UPDATE.match(/(\d{2})\/(\d{2})\/(\d{4})/) : null;
-  if (luM) {
-    const luDay = +luM[1], luMon = +luM[2], luYear = +luM[3];
-    const [bMon, bYear] = mB.split('-').map(Number);
-    const [aMon, aYear] = mA.split('-').map(Number);
-    const dim = (m, y) => new Date(y, m, 0).getDate();   // días del mes m (1-12) del año y
-    const daysB = dim(bMon, bYear);
-    if (bMon === luMon && bYear === luYear && luDay > 0 && luDay < daysB) {
-      const N = luDay, daysA = dim(aMon, aYear);
-      const aNorm = Math.round(totA * N / daysA);         // mes previo a N días
-      const bProj = Math.round(totB * daysB / N);         // proyección mes en curso a mes completo
-      const fairPct = aNorm ? (totB - aNorm) / aNorm * 100 : null;
-      const fCls = fairPct > 0 ? 'pos' : fairPct < 0 ? 'neg' : '';
-      const fStr = fairPct === null ? '—' : `${fairPct > 0 ? '+' : ''}${fairPct.toFixed(0)}%`;
-      normHtml = `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #c8d0e0;font-size:11px">
-        <div style="color:#999;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Normalizado · ${N} días</div>
-        <div style="display:flex;justify-content:space-between;padding:1px 0"><span style="color:#555">${lA} a ${N} días</span><b>${nf(aNorm)}</b></div>
-        <div style="display:flex;justify-content:space-between;padding:1px 0"><span style="color:#555">${lB} vs prev.</span><b class="${fCls}">${fStr}</b></div>
-        <div style="display:flex;justify-content:space-between;padding:1px 0"><span style="color:#555">${lB} proyect.</span><b>${nf(bProj)}</b></div>
-      </div>`;
+  if (viewMode === 'norm') {
+    // En vista Normalizado, totA ya viene prorrateado (NF_A). Solo aclaramos.
+    normHtml = `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #c8d0e0;font-size:10px;color:#888">
+      ${lA} prorrateado a ${NORM_N} días (mismos que ${lB})</div>`;
+  } else {
+    // Vista Real: si el mes Hasta está en curso, mostramos referencia normalizada al pie.
+    const luM = (typeof LAST_UPDATE === 'string') ? LAST_UPDATE.match(/(\d{2})\/(\d{2})\/(\d{4})/) : null;
+    if (luM) {
+      const luDay = +luM[1], luMon = +luM[2], luYear = +luM[3];
+      const [bMon, bYear] = mB.split('-').map(Number);
+      const [aMon, aYear] = mA.split('-').map(Number);
+      const dim = (m, y) => new Date(y, m, 0).getDate();
+      const daysB = dim(bMon, bYear);
+      if (bMon === luMon && bYear === luYear && luDay > 0 && luDay < daysB) {
+        const N = luDay, daysA = dim(aMon, aYear);
+        const aNorm = Math.round(totA * N / daysA);
+        const bProj = Math.round(totB * daysB / N);
+        const fairPct = aNorm ? (totB - aNorm) / aNorm * 100 : null;
+        const fCls = fairPct > 0 ? 'pos' : fairPct < 0 ? 'neg' : '';
+        const fStr = fairPct === null ? '—' : `${fairPct > 0 ? '+' : ''}${fairPct.toFixed(0)}%`;
+        normHtml = `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #c8d0e0;font-size:11px">
+          <div style="color:#999;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Normalizado · ${N} días</div>
+          <div style="display:flex;justify-content:space-between;padding:1px 0"><span style="color:#555">${lA} a ${N} días</span><b>${nf(aNorm)}</b></div>
+          <div style="display:flex;justify-content:space-between;padding:1px 0"><span style="color:#555">${lB} vs prev.</span><b class="${fCls}">${fStr}</b></div>
+          <div style="display:flex;justify-content:space-between;padding:1px 0"><span style="color:#555">${lB} proyect.</span><b>${nf(bProj)}</b></div>
+        </div>`;
+      }
     }
   }
 
@@ -838,6 +853,33 @@ function arrow(table, col) {
   return s.col === col ? (s.dir > 0 ? ' ↑' : ' ↓') : '';
 }
 
+// --- Vista Real / Normalizado ---
+// En "Normalizado" el mes "Desde" (mA) se prorratea a los días transcurridos del
+// mes "Hasta" (mB), para comparar parejo cuando el mes actual todavía no terminó.
+let viewMode = 'real';
+let NF_A = 1;      // factor que se aplica a los valores de mA (1 en vista Real)
+let NORM_N = 0;    // días efectivos del mes Hasta (para las leyendas)
+function setView(m) {
+  viewMode = m;
+  const r = document.getElementById('view-real'), n = document.getElementById('view-norm');
+  if (r && n) { r.classList.toggle('active', m === 'real'); n.classList.toggle('active', m === 'norm'); }
+  updateInsights();
+}
+// Factor de prorrateo de mA y días efectivos de mB (según Última actualización)
+function computeNormA(mA, mB) {
+  const dim = (m, y) => new Date(y, m, 0).getDate();
+  const [bMon, bYear] = mB.split('-').map(Number);
+  const [aMon, aYear] = mA.split('-').map(Number);
+  let N = dim(bMon, bYear);
+  const luM = (typeof LAST_UPDATE === 'string') ? LAST_UPDATE.match(/(\d{2})\/(\d{2})\/(\d{4})/) : null;
+  if (luM) {
+    const luDay = +luM[1], luMon = +luM[2], luYear = +luM[3];
+    if (bMon === luMon && bYear === luYear && luDay > 0 && luDay < N) N = luDay;
+  }
+  const daysA = dim(aMon, aYear);
+  return { factor: daysA ? N / daysA : 1, N };
+}
+
 // --- Insights / Variaciones del mes ---
 function updateInsights() {
   const mA        = document.getElementById('ins-month-a').value;
@@ -846,6 +888,10 @@ function updateInsights() {
   if (!mA || !mB) return;
   const lA = MONTH_LABELS[MONTHS.indexOf(mA)];
   const lB = MONTH_LABELS[MONTHS.indexOf(mB)];
+  // Factor de normalización (solo afecta a mA en vista "Normalizado")
+  const _norm = computeNormA(mA, mB);
+  NORM_N = _norm.N;
+  NF_A = (viewMode === 'norm') ? _norm.factor : 1;
   // Usar getFiltered() para que responda a TODOS los filtros
   const allFiltered = getFiltered();
 
@@ -853,10 +899,10 @@ function updateInsights() {
   const brandMap = {};
   allFiltered.forEach(r => {
     if (!brandMap[r.marca]) brandMap[r.marca] = { a:0, b:0 };
-    brandMap[r.marca].a += r[mA]||0; brandMap[r.marca].b += r[mB]||0;
+    brandMap[r.marca].a += (r[mA]||0)*NF_A; brandMap[r.marca].b += r[mB]||0;
   });
   const allBrandRows = Object.entries(brandMap)
-    .map(([marca,v]) => ({ marca, a:v.a, b:v.b, varAbs:v.b-v.a, varPct:v.a?(v.b-v.a)/v.a*100:null }))
+    .map(([marca,v]) => { const a = Math.round(v.a); return { marca, a, b:v.b, varAbs:v.b-a, varPct:a?(v.b-a)/a*100:null }; })
     .sort((x,y) => y.b-x.b);
 
   // Totales del mercado completo (SIN filtro de mínimo)
@@ -927,15 +973,16 @@ function updateInsights() {
     if (!modeloMap[key]) {
       modeloMap[key] = { marca: r.marca, modelo: r.modelo, uA: 0, uB: 0 };
     }
-    modeloMap[key].uA += r[mA] || 0;
+    modeloMap[key].uA += (r[mA]||0)*NF_A;
     modeloMap[key].uB += r[mB] || 0;
   });
 
   const results = [];
   Object.values(modeloMap).forEach(m => {
     if (m.uB < minU) return;
-    const varAbs = m.uB - m.uA, varPct = m.uA ? varAbs / m.uA * 100 : null;
-    results.push({ marca: m.marca, modelo: m.modelo, uA: m.uA, uB: m.uB, varAbs, varPct });
+    const uA = Math.round(m.uA);
+    const varAbs = m.uB - uA, varPct = uA ? varAbs / uA * 100 : null;
+    results.push({ marca: m.marca, modelo: m.modelo, uA, uB: m.uB, varAbs, varPct });
   });
   const mkHead = (tbl) => `<tr>
     <th style="text-align:center;width:24px">#</th>
@@ -968,7 +1015,7 @@ function updateInsights() {
   const models = sortArr(results, sortState.models.col, sortState.models.dir);
 
   // Totales globales SIN filtro de mínimo (mismo universo que marcas)
-  const allA = allFiltered.reduce((s,r)=>s+(r[mA]||0),0);
+  const allA = Math.round(allFiltered.reduce((s,r)=>s+((r[mA]||0)*NF_A),0));
   const allB = allFiltered.reduce((s,r)=>s+(r[mB]||0),0);
 
   function mkTotal(list) {
