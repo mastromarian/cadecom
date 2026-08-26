@@ -332,6 +332,48 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
     </div>
   </div>
   <div class="filter-group">
+    <label>Zona</label>
+    <div class="ms-wrap" id="ms-zona-wrap">
+      <div class="ms-trigger" id="ms-zona-trigger" onclick="toggleMs('zona',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-zona-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar zona…" oninput="filterMsList('zona',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('zona')">Seleccionar todo</button>
+          <button onclick="clearMs('zona')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-zona-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-group">
+    <label>Provincia</label>
+    <div class="ms-wrap" id="ms-provincia-wrap">
+      <div class="ms-trigger" id="ms-provincia-trigger" onclick="toggleMs('provincia',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-provincia-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar provincia…" oninput="filterMsList('provincia',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('provincia')">Seleccionar todo</button>
+          <button onclick="clearMs('provincia')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-provincia-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-group">
+    <label>Localidad</label>
+    <div class="ms-wrap" id="ms-localidad-wrap">
+      <div class="ms-trigger" id="ms-localidad-trigger" onclick="toggleMs('localidad',event)">Todas</div>
+      <div class="ms-dropdown" id="ms-localidad-drop">
+        <div class="ms-search"><input type="text" placeholder="Buscar localidad…" oninput="filterMsList('localidad',this.value)"></div>
+        <div class="ms-actions">
+          <button onclick="selectAllMs('localidad')">Seleccionar todo</button>
+          <button onclick="clearMs('localidad')">Limpiar</button>
+        </div>
+        <div class="ms-list" id="ms-localidad-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-group">
     <label>Top N marcas</label>
     <select id="f-topn" style="width:90px">
       <option value="5">Top 5</option>
@@ -416,8 +458,18 @@ const PAGE_SIZE = 25;
 let chartEvol = null, chartEvolCil = null;
 
 // --- Multiselect state ---
-const msState = { marca: new Set(), modelo: new Set(), cil: new Set() };
-const msAllItems = { marca: [], modelo: [], cil: [] };
+const msState = { marca: new Set(), modelo: new Set(), cil: new Set(), zona: new Set(), provincia: new Set(), localidad: new Set() };
+const msAllItems = { marca: [], modelo: [], cil: [], zona: [], provincia: [], localidad: [] };
+
+// Zona Pacheco: agrupación virtual (subconjunto de Bs As) por localidad cabecera de partido.
+const ZONA_PACHECO = 'ZONA PACHECO';
+const ZONA_PACHECO_LOCS = ['SAN ISIDRO', 'SAN FERNANDO', 'TIGRE', 'ESCOBAR', 'PILAR', 'JOSE C. PAZ', 'MALVINAS ARGENTINAS', 'SAN MIGUEL', 'SAN MARTIN', 'OLIVOS', 'ZARATE', 'CAMPANA', 'CAPILLA DEL SENOR'];
+const ZP_SET = new Set(ZONA_PACHECO_LOCS);
+// AMBA real (curada): en la base "AMBA" abarca toda la provincia de Bs As; la acotamos al conurbano/AMBA-40.
+const AMBA_LOCS = ['ADROGUE', 'AVELLANEDA', 'BERAZATEGUI', 'BERISSO', 'BRANDSEN', 'CABA', 'CAMPANA', 'CANUELAS', 'CAPILLA DEL SENOR', 'ENSENADA', 'ESCOBAR', 'ESTEBAN ECHEVERRIA', 'EZEIZA', 'FLORENCIO VARELA', 'GENERAL RODRIGUEZ', 'JOSE C. PAZ', 'LA MATANZA', 'LA PLATA', 'LANUS', 'LOMAS DE ZAMORA', 'LUJAN', 'MALVINAS ARGENTINAS', 'MARCOS PAZ', 'MERLO', 'MORENO', 'MORON', 'OLIVOS', 'PILAR', 'QUILMES', 'SAN FERNANDO', 'SAN ISIDRO', 'SAN MARTIN', 'SAN MIGUEL', 'SAN VICENTE', 'TIGRE', 'TRES DE FEBRERO', 'ZARATE'];
+const AMBA_SET = new Set(AMBA_LOCS);
+// Zonas "virtuales" (curadas): matchean por localidad, no por el campo r.zona de la base.
+const VIRTUAL_ZONAS = { 'AMBA': AMBA_SET, [ZONA_PACHECO]: ZP_SET };
 
 const MS_SEP = '__sep__';   // ítem separador (divisor visual, no seleccionable)
 const msItemHtml = key => v =>
@@ -464,14 +516,14 @@ function onMsChange(key, value, checked) {
   if (checked) msState[key].add(value);
   else msState[key].delete(value);
   updateMsTrigger(key);
-  if (key === 'marca' || key === 'cil') rebuildModelos();
+  refreshDependents(key);
   update();
 }
 
 function updateMsTrigger(key) {
   const trigger = document.getElementById(`ms-${key}-trigger`);
   const n = msState[key].size;
-  const label = key === 'marca' ? 'Todas' : 'Todos';
+  const label = key === 'modelo' ? 'Todos' : 'Todas';
   if (n === 0) {
     trigger.innerHTML = label;
   } else if (n === 1) {
@@ -485,7 +537,7 @@ function selectAllMs(key) {
   const checks = document.querySelectorAll(`#ms-${key}-list input[type=checkbox]`);
   checks.forEach(c => { c.checked = true; msState[key].add(c.value); });
   updateMsTrigger(key);
-  if (key === 'marca') rebuildModelos();
+  refreshDependents(key);
   update();
 }
 
@@ -493,7 +545,7 @@ function clearMs(key) {
   msState[key].clear();
   document.querySelectorAll(`#ms-${key}-list input[type=checkbox]`).forEach(c => c.checked = false);
   updateMsTrigger(key);
-  if (key === 'marca') rebuildModelos();
+  refreshDependents(key);
   update();
 }
 
@@ -531,6 +583,73 @@ function rebuildModelos() {
   msState.modelo = new Set([...msState.modelo].filter(m => modelos.includes(m)));
   buildMsList('modelo', modelos);
   updateMsTrigger('modelo');
+}
+
+// Repuebla listas dependientes según el filtro que cambió (cascada)
+function refreshDependents(key) {
+  if (key === 'marca' || key === 'cil') rebuildModelos();
+  if (key === 'zona') { populateProvincias(); populateLocalidades(); }
+  if (key === 'provincia') populateLocalidades();
+}
+
+// Zona: las virtuales (AMBA curada, Zona Pacheco) matchean por localidad;
+// las macro-regiones (NOA, NEA, Cuyo, Centro, Patagonia) por el campo r.zona.
+function matchZona(r) {
+  if (msState.zona.size === 0) return true;
+  for (const z of msState.zona) {
+    if (VIRTUAL_ZONAS[z]) { if (VIRTUAL_ZONAS[z].has(r.localidad)) return true; }
+    else if (z === r.zona) return true;
+  }
+  return false;
+}
+
+// Provincias disponibles según las zonas seleccionadas (usa ZONA_PROVINCIAS)
+function populateProvincias() {
+  const zonas = [...msState.zona];
+  let provs;
+  if (zonas.length === 0) {
+    provs = Object.keys(PROVINCIA_LOCALIDADES).sort();
+  } else {
+    const set = new Set();
+    zonas.forEach(z => {
+      if (z === ZONA_PACHECO) set.add('BUENOS AIRES');
+      else if (z === 'AMBA') { set.add('BUENOS AIRES'); set.add('CABA'); }
+      else (ZONA_PROVINCIAS[z] || []).forEach(p => set.add(p));
+    });
+    provs = [...set].sort();
+  }
+  msState.provincia.forEach(p => { if (!provs.includes(p)) msState.provincia.delete(p); });
+  buildMsList('provincia', provs);
+  updateMsTrigger('provincia');
+}
+
+// Localidades disponibles: intersección de zonas Y provincias seleccionadas
+function populateLocalidades() {
+  const zonas = [...msState.zona];
+  const provs = [...msState.provincia];
+  let byZona = null;
+  if (zonas.length > 0) {
+    byZona = new Set();
+    zonas.forEach(z => {
+      if (z === ZONA_PACHECO) ZONA_PACHECO_LOCS.forEach(l => byZona.add(l));
+      else if (z === 'AMBA') AMBA_LOCS.forEach(l => byZona.add(l));
+      else (ZONA_LOCALIDADES[z] || []).forEach(l => byZona.add(l));
+    });
+  }
+  let byProv = null;
+  if (provs.length > 0) {
+    byProv = new Set();
+    provs.forEach(p => (PROVINCIA_LOCALIDADES[p] || []).forEach(l => byProv.add(l)));
+  }
+  let locs;
+  if (byZona && byProv)      locs = [...byZona].filter(l => byProv.has(l));
+  else if (byZona)           locs = [...byZona];
+  else if (byProv)           locs = [...byProv];
+  else                       locs = Object.values(PROVINCIA_LOCALIDADES).flat();
+  locs = [...new Set(locs)].sort();
+  msState.localidad.forEach(l => { if (!locs.includes(l)) msState.localidad.delete(l); });
+  buildMsList('localidad', locs);
+  updateMsTrigger('localidad');
 }
 
 // --- Period filter helpers ---
@@ -581,6 +700,12 @@ function initFilters() {
   buildMsList('cil', cats);
   rebuildModelos();
 
+  // AMBA y Zona Pacheco arriba, separador, luego el resto de las zonas
+  const otherZonas = Object.keys(ZONA_LOCALIDADES).filter(z => z !== 'AMBA').sort();
+  buildMsList('zona', ['AMBA', ZONA_PACHECO, MS_SEP, ...otherZonas]);
+  populateProvincias();
+  populateLocalidades();
+
   document.getElementById('f-topn').addEventListener('change', update);
 
 }
@@ -592,15 +717,13 @@ function resetFilters() {
   document.getElementById('f-desde-month').value = rDesdeM;
   document.getElementById('f-hasta-year').value = PERIOD_YEARS[PERIOD_YEARS.length-1];
   populateMonths('f-hasta-year', 'f-hasta-month', true);
-  msState.marca.clear();
-  msState.modelo.clear();
-  msState.cil.clear();
+  ['marca', 'modelo', 'cil', 'zona', 'provincia', 'localidad'].forEach(k => { msState[k].clear(); updateMsTrigger(k); });
   buildMsList('marca', msAllItems.marca);
   buildMsList('cil', msAllItems.cil);
+  buildMsList('zona', msAllItems.zona);
   rebuildModelos();
-  updateMsTrigger('marca');
-  updateMsTrigger('modelo');
-  updateMsTrigger('cil');
+  populateProvincias();
+  populateLocalidades();
   document.getElementById('f-topn').value = '10';
   update();
 }
@@ -619,7 +742,10 @@ function getFiltered() {
   return RAW_DATA.filter(r =>
     (msState.marca.size  === 0 || msState.marca.has(r.marca)) &&
     (msState.modelo.size === 0 || msState.modelo.has(r.modelo)) &&
-    (msState.cil.size    === 0 || msState.cil.has(r.cilindrada))
+    (msState.cil.size    === 0 || msState.cil.has(r.cilindrada)) &&
+    matchZona(r) &&
+    (msState.provincia.size === 0 || msState.provincia.has(r.provincia)) &&
+    (msState.localidad.size === 0 || msState.localidad.has(r.localidad))
   );
 }
 
