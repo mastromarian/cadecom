@@ -897,7 +897,7 @@ function updateInsights() {
   const mktA = allBrandRows.reduce((s,b)=>s+b.a,0);
   const mktB = allBrandRows.reduce((s,b)=>s+b.b,0);
   // Filas mostradas: todas las marcas con ventas en el último mes (con scroll)
-  const brands = allBrandRows.filter(b => b.b >= minU);
+  const brands = allBrandRows.filter(b => (b.b || 0) > 0 || (b.a || 0) > 0);
 
   const sortedBrands = sortArr(brands, sortState.brands.col, sortState.brands.dir);
 
@@ -935,7 +935,7 @@ function updateInsights() {
     const mktVar = mktA ? (mktB-mktA)/mktA*100 : null;
     const mCls = mktB>mktA?'pos':mktB<mktA?'neg':'', mSign=mktB>mktA?'+':'';
     const mPct = mktVar!==null?`${mSign}${mktVar.toFixed(0)}%`:'—';
-    return `
+    const restoRow = (restoA === 0 && restoB === 0) ? '' : `
       <tr style="background:#f5f7fc;border-top:1px dashed #c8d0e0">
         <td style="text-align:center;color:#aaa;font-size:11px">—</td>
         <td style="text-align:left;font-weight:600;color:#888;font-style:italic">Resto</td>
@@ -943,7 +943,8 @@ function updateInsights() {
         <td style="text-align:right;font-weight:700;color:#888">${restoB.toLocaleString('es-AR')}</td>
         <td class="${rCls}" style="text-align:right;color:#888">${rSign}${(restoB-restoA).toLocaleString('es-AR')}</td>
         <td class="${rCls}" style="text-align:right;font-weight:700">${rPct}</td>
-      </tr>
+      </tr>`;
+    return restoRow + `
       <tr class="total-row">
         <td style="text-align:center">—</td>
         <td style="text-align:left;font-weight:700">TOTAL</td>
@@ -967,7 +968,7 @@ function updateInsights() {
 
   const results = [];
   Object.values(modeloMap).forEach(m => {
-    if (m.uB < minU) return;
+    if ((m.uA || 0) <= 0 && (m.uB || 0) <= 0) return;   // mostrar si vendió en cualquiera de los dos meses (aunque el último sea 0)
     const uA = Math.round(m.uA);
     const varAbs = m.uB - uA, varPct = uA ? varAbs / uA * 100 : null;
     results.push({ marca: m.marca, modelo: m.modelo, uA, uB: m.uB, varAbs, varPct });
@@ -1015,7 +1016,7 @@ function updateInsights() {
     const tVar=allA?(allB-allA)/allA*100:null;
     const tCls=allB>allA?'pos':allB<allA?'neg':'', tSign=allB>allA?'+':'';
     const tPct=tVar!==null?`${tSign}${tVar.toFixed(0)}%`:'—';
-    return `
+    const restoRow = (restoA === 0 && restoB === 0) ? '' : `
       <tr style="background:#f5f7fc;border-top:1px dashed #c8d0e0">
         <td style="text-align:center;color:#aaa;font-size:11px">—</td>
         <td colspan="2" style="text-align:left;font-weight:600;color:#888;font-style:italic">Resto</td>
@@ -1023,7 +1024,8 @@ function updateInsights() {
         <td style="text-align:right;font-weight:700;color:#888">${restoB.toLocaleString('es-AR')}</td>
         <td class="${rCls}" style="text-align:right;color:#888">${rSign}${(restoB-restoA).toLocaleString('es-AR')}</td>
         <td class="${rCls}" style="text-align:right;font-weight:700">${rPct}</td>
-      </tr>
+      </tr>`;
+    return restoRow + `
       <tr class="total-row">
         <td style="text-align:center">—</td><td colspan="2" style="text-align:left;font-weight:700">TOTAL</td>
         <td style="text-align:right">${allA.toLocaleString('es-AR')}</td>
