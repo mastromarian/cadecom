@@ -430,8 +430,19 @@ function matchZona(r) {
   return false;
 }
 
+// Firma del estado de filtros → para memoizar getFiltered() y no re-filtrar
+// las ~200k filas en toggles que no cambian el filtro (Real/Normalizado, "Ver más").
+function filtersSignature() {
+  return ['marca','modelo','cil','zona','provincia','localidad']
+    .map(k => k + ':' + [...msState[k]].sort().join(',')).join('|');
+}
+let _gfSig = null, _gfCache = null;
+function invalidateFiltered() { _gfSig = null; _gfCache = null; }  // llamar si cambia RAW_DATA (historia)
 function getFiltered() {
-  return RAW_DATA.filter(r =>
+  const sig = filtersSignature();
+  if (sig === _gfSig && _gfCache) return _gfCache;
+  _gfSig = sig;
+  _gfCache = RAW_DATA.filter(r =>
     (msState.marca.size === 0     || msState.marca.has(r.marca)) &&
     (msState.modelo.size === 0    || msState.modelo.has(r.modelo)) &&
     (msState.cil.size === 0       || msState.cil.has(r.cilindrada)) &&
@@ -439,6 +450,7 @@ function getFiltered() {
     (msState.provincia.size === 0 || msState.provincia.has(r.provincia)) &&
     (msState.localidad.size === 0 || msState.localidad.has(r.localidad))
   );
+  return _gfCache;
 }
 
 // Ítems del filtro Marca en 3 tramos:
@@ -483,18 +495,17 @@ function initFilters() {
 }
 
 function populateModelos() {
-  const marcas = [...msState.marca];
-
   const filtered = RAW_DATA.filter(r =>
-    (marcas.length === 0 || marcas.includes(r.marca)) &&
+    (msState.marca.size === 0 || msState.marca.has(r.marca)) &&
     (msState.cil.size === 0 || msState.cil.has(r.cilindrada))
   );
 
   const modelos = [...new Set(filtered.map(r => r.modelo))].sort();
+  const modelosSet = new Set(modelos);
 
   // Eliminar modelos que ya no están disponibles del estado
   msState.modelo.forEach(m => {
-    if (!modelos.includes(m)) msState.modelo.delete(m);
+    if (!modelosSet.has(m)) msState.modelo.delete(m);
   });
 
   buildMsList('modelo', modelos);
@@ -1107,6 +1118,7 @@ function initApp() {
 // data.js trae solo lo reciente para render instantáneo; al terminar de
 // fusionar la historia, se re-renderiza con la base completa.
 function onHistoriaLoaded() {
+  invalidateFiltered();   // RAW_DATA cambió (se fusionó la historia)
   // Refrescar listas (pueden aparecer marcas/cilindradas/modelos solo históricos),
   // preservando las selecciones actuales del usuario
   buildMsList('marca', marcaItems());

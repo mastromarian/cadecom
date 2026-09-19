@@ -647,7 +647,7 @@ function populateLocalidades() {
 }
 
 // --- Period filter helpers ---
-const PERIOD_YEARS   = [...new Set(MONTHS.map(m => m.split('-')[1]))].sort();
+let PERIOD_YEARS     = [];  // se llena en initApp() (MONTHS llega async, ver data-loader.js)
 const MONTH_NAMES    = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 function getMonthsForYear(year) {
@@ -733,8 +733,21 @@ function getActiveMths() {
 }
 
 // --- Filter & aggregate ---
+// Memoización: getFiltered() y los totales de mercado se recalculan sólo cuando
+// cambian, respectivamente, los filtros o el rango de meses. Así paginar/cambiar
+// métrica del gráfico no re-escanea las ~200k filas ni re-agrega todo el dataset.
+function filtersSignature() {
+  return ['marca','modelo','cil','zona','provincia','localidad']
+    .map(k => k + ':' + [...msState[k]].sort().join(',')).join('|');
+}
+let _gfSig = null, _gfCache = null;
+let _mktKey = null, _mktCache = null;
+function invalidateCaches() { _gfSig = null; _gfCache = null; _mktKey = null; _mktCache = null; }
 function getFiltered() {
-  return RAW_DATA.filter(r =>
+  const sig = filtersSignature();
+  if (sig === _gfSig && _gfCache) return _gfCache;
+  _gfSig = sig;
+  _gfCache = RAW_DATA.filter(r =>
     (msState.marca.size  === 0 || msState.marca.has(r.marca)) &&
     (msState.modelo.size === 0 || msState.modelo.has(r.modelo)) &&
     (msState.cil.size    === 0 || msState.cil.has(r.cilindrada)) &&
@@ -742,6 +755,15 @@ function getFiltered() {
     (msState.provincia.size === 0 || msState.provincia.has(r.provincia)) &&
     (msState.localidad.size === 0 || msState.localidad.has(r.localidad))
   );
+  return _gfCache;
+}
+// Totales de mercado (100%) por mes: dependen sólo del rango de meses, no de filtros.
+function getMarketTotals(mths) {
+  const key = mths.join(',');
+  if (key === _mktKey && _mktCache) return _mktCache;
+  _mktKey = key;
+  _mktCache = getTotalsPerMonth(aggregateByBrand(RAW_DATA, mths), mths);
+  return _mktCache;
 }
 
 function aggregateByBrand(data, mths) {
@@ -1181,9 +1203,8 @@ function update() {
   const filtered  = getFiltered();
   const brands    = aggregateByBrand(filtered, mths);
   const rows      = aggregateByBrandModel(filtered, mths);
-  // always use full market totals for % calculation
-  const allBrands = aggregateByBrand(RAW_DATA, mths);
-  const marketTotals = getTotalsPerMonth(allBrands, mths);
+  // always use full market totals for % calculation (memoizado por rango de meses)
+  const marketTotals = getMarketTotals(mths);
 
   updateChartEvol(brands, mths, marketTotals);
   updateChartEvolCil(filtered, mths, marketTotals);
@@ -1224,6 +1245,7 @@ function renderUpdateBanner(){
 function initApp() {
   MONTHS = ALL_MONTHS;
   MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '/' + mm; });
+  PERIOD_YEARS = [...new Set(MONTHS.map(m => m.split('-')[1]))].sort();
   renderUpdateBanner();
   initFilters();
   update();
@@ -1231,6 +1253,7 @@ function initApp() {
 
 // --- Carga diferida de la historia (2013-2023) en segundo plano ---
 function onHistoriaLoaded() {
+  invalidateCaches();   // RAW_DATA cambió (se fusionó la historia)
   // Refrescar listas con marcas/cilindradas/modelos que solo existen en la historia
   buildMsList('marca', marcaItems());
   const cats = [...new Set(RAW_DATA.map(r => r.cilindrada).filter(c => c && c !== 'Sin categoría'))].sort();
