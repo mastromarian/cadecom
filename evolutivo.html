@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
 <script src="data-loader.js"></script>
+<script src="shared.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Barlow', Arial, Helvetica, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
@@ -451,60 +452,8 @@ let currentPage = 1;
 const PAGE_SIZE = 25;
 let chartEvol = null, chartEvolCil = null;
 
-// --- Multiselect state ---
-const msState = { marca: new Set(), modelo: new Set(), cil: new Set(), zona: new Set(), provincia: new Set(), localidad: new Set() };
-const msAllItems = { marca: [], modelo: [], cil: [], zona: [], provincia: [], localidad: [] };
-
-// Zona Pacheco: agrupación virtual (subconjunto de Bs As) por localidad cabecera de partido.
-const ZONA_PACHECO = 'ZONA PACHECO';
-const ZONA_PACHECO_LOCS = ['SAN ISIDRO', 'SAN FERNANDO', 'TIGRE', 'ESCOBAR', 'PILAR', 'JOSE C. PAZ', 'MALVINAS ARGENTINAS', 'SAN MIGUEL', 'SAN MARTIN', 'OLIVOS', 'ZARATE', 'CAMPANA', 'CAPILLA DEL SENOR'];
-const ZP_SET = new Set(ZONA_PACHECO_LOCS);
-// AMBA real (curada): en la base "AMBA" abarca toda la provincia de Bs As; la acotamos al conurbano/AMBA-40.
-const AMBA_LOCS = ['ADROGUE', 'AVELLANEDA', 'BERAZATEGUI', 'BERISSO', 'BRANDSEN', 'CABA', 'CAMPANA', 'CANUELAS', 'CAPILLA DEL SENOR', 'ENSENADA', 'ESCOBAR', 'ESTEBAN ECHEVERRIA', 'EZEIZA', 'FLORENCIO VARELA', 'GENERAL RODRIGUEZ', 'JOSE C. PAZ', 'LA MATANZA', 'LA PLATA', 'LANUS', 'LOMAS DE ZAMORA', 'LUJAN', 'MALVINAS ARGENTINAS', 'MARCOS PAZ', 'MERLO', 'MORENO', 'MORON', 'OLIVOS', 'PILAR', 'QUILMES', 'SAN FERNANDO', 'SAN ISIDRO', 'SAN MARTIN', 'SAN MIGUEL', 'SAN VICENTE', 'TIGRE', 'TRES DE FEBRERO', 'ZARATE'];
-const AMBA_SET = new Set(AMBA_LOCS);
-// Zonas "virtuales" (curadas): matchean por localidad, no por el campo r.zona de la base.
-const VIRTUAL_ZONAS = { 'AMBA': AMBA_SET, [ZONA_PACHECO]: ZP_SET };
-
-const MS_SEP = '__sep__';   // ítem separador (divisor visual, no seleccionable)
-const msItemHtml = key => v =>
-  v === MS_SEP ? '<div class="ms-sep"></div>' :
-  `<label class="ms-item">
-      <input type="checkbox" value="${v}" onchange="onMsChange('${key}',this.value,this.checked)" ${msState[key].has(v)?'checked':''}><span>${v}</span>
-    </label>`;
-
-// Marcas fijadas arriba del filtro (igual que en Variaciones)
-const PINNED_MARCAS = ['YAMAHA', 'SUZUKI', 'VOGE', 'HERO', 'MOTOMEL', 'SIAM', 'TVS', 'GAF'];
-// pineadas ·sep· top 20 por volumen (alfabético) ·sep· resto (alfabético)
-function marcaItems() {
-  const all = [...new Set(RAW_DATA.map(r => r.marca))];
-  const pinnedSet = new Set(PINNED_MARCAS);
-  const pinned = PINNED_MARCAS.filter(m => all.includes(m));
-  // Top 20 por volumen del ÚLTIMO MES disponible (no del acumulado)
-  const lastMonth = (typeof ALL_MONTHS !== 'undefined' && ALL_MONTHS.length) ? ALL_MONTHS[ALL_MONTHS.length - 1] : null;
-  const vol = {};
-  RAW_DATA.forEach(r => { vol[r.marca] = (vol[r.marca] || 0) + (lastMonth ? (r[lastMonth] || 0) : (r.total || 0)); });
-  const nonPinned = all.filter(m => !pinnedSet.has(m));
-  const top20 = [...nonPinned].sort((a, b) => (vol[b] || 0) - (vol[a] || 0)).slice(0, 20).sort((a, b) => a.localeCompare(b));
-  const top20Set = new Set(top20);
-  const rest = nonPinned.filter(m => !top20Set.has(m)).sort((a, b) => a.localeCompare(b));
-  const out = [];
-  if (pinned.length) out.push(...pinned, MS_SEP);
-  out.push(...top20);
-  if (rest.length) out.push(MS_SEP, ...rest);
-  return out;
-}
-
-function buildMsList(key, items) {
-  msAllItems[key] = items;
-  const list = document.getElementById(`ms-${key}-list`);
-  list.innerHTML = items.map(msItemHtml(key)).join('');
-}
-
-function filterMsList(key, q) {
-  const items = msAllItems[key].filter(v => v !== MS_SEP && v.toLowerCase().includes(q.toLowerCase()));
-  const list = document.getElementById(`ms-${key}-list`);
-  list.innerHTML = items.map(msItemHtml(key)).join('');
-}
+// Multiselect (estado + helpers), geo, marcaItems, matchZona, getFiltered y
+// listas dependientes (provincias/localidades) → shared.js
 
 function onMsChange(key, value, checked) {
   if (checked) msState[key].add(value);
@@ -543,29 +492,7 @@ function clearMs(key) {
   update();
 }
 
-function toggleMs(key, event) {
-  event && event.stopPropagation();
-  const drop = document.getElementById(`ms-${key}-drop`);
-  const trigger = document.getElementById(`ms-${key}-trigger`);
-  const isOpen = drop.classList.contains('open');
-  document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
-  document.querySelectorAll('.ms-trigger.open').forEach(t => t.classList.remove('open'));
-  if (!isOpen) {
-    const rect = trigger.getBoundingClientRect();
-    drop.style.top  = (rect.bottom + 4) + 'px';
-    drop.style.left = rect.left + 'px';
-    drop.classList.add('open');
-    trigger.classList.add('open');
-  }
-}
-
-// close on outside click
-document.addEventListener('click', e => {
-  if (!e.target.closest('.ms-wrap')) {
-    document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
-    document.querySelectorAll('.ms-trigger.open').forEach(t => t.classList.remove('open'));
-  }
-});
+// toggleMs y cierre por click afuera → shared.js
 
 function rebuildModelos() {
   const modelos = [...new Set(
@@ -586,65 +513,7 @@ function refreshDependents(key) {
   if (key === 'provincia') populateLocalidades();
 }
 
-// Zona: las virtuales (AMBA curada, Zona Pacheco) matchean por localidad;
-// las macro-regiones (NOA, NEA, Cuyo, Centro, Patagonia) por el campo r.zona.
-function matchZona(r) {
-  if (msState.zona.size === 0) return true;
-  for (const z of msState.zona) {
-    if (VIRTUAL_ZONAS[z]) { if (VIRTUAL_ZONAS[z].has(r.localidad)) return true; }
-    else if (z === r.zona) return true;
-  }
-  return false;
-}
-
-// Provincias disponibles según las zonas seleccionadas (usa ZONA_PROVINCIAS)
-function populateProvincias() {
-  const zonas = [...msState.zona];
-  let provs;
-  if (zonas.length === 0) {
-    provs = Object.keys(PROVINCIA_LOCALIDADES).sort();
-  } else {
-    const set = new Set();
-    zonas.forEach(z => {
-      if (z === ZONA_PACHECO) set.add('BUENOS AIRES');
-      else if (z === 'AMBA') { set.add('BUENOS AIRES'); set.add('CABA'); }
-      else (ZONA_PROVINCIAS[z] || []).forEach(p => set.add(p));
-    });
-    provs = [...set].sort();
-  }
-  msState.provincia.forEach(p => { if (!provs.includes(p)) msState.provincia.delete(p); });
-  buildMsList('provincia', provs);
-  updateMsTrigger('provincia');
-}
-
-// Localidades disponibles: intersección de zonas Y provincias seleccionadas
-function populateLocalidades() {
-  const zonas = [...msState.zona];
-  const provs = [...msState.provincia];
-  let byZona = null;
-  if (zonas.length > 0) {
-    byZona = new Set();
-    zonas.forEach(z => {
-      if (z === ZONA_PACHECO) ZONA_PACHECO_LOCS.forEach(l => byZona.add(l));
-      else if (z === 'AMBA') AMBA_LOCS.forEach(l => byZona.add(l));
-      else (ZONA_LOCALIDADES[z] || []).forEach(l => byZona.add(l));
-    });
-  }
-  let byProv = null;
-  if (provs.length > 0) {
-    byProv = new Set();
-    provs.forEach(p => (PROVINCIA_LOCALIDADES[p] || []).forEach(l => byProv.add(l)));
-  }
-  let locs;
-  if (byZona && byProv)      locs = [...byZona].filter(l => byProv.has(l));
-  else if (byZona)           locs = [...byZona];
-  else if (byProv)           locs = [...byProv];
-  else                       locs = Object.values(PROVINCIA_LOCALIDADES).flat();
-  locs = [...new Set(locs)].sort();
-  msState.localidad.forEach(l => { if (!locs.includes(l)) msState.localidad.delete(l); });
-  buildMsList('localidad', locs);
-  updateMsTrigger('localidad');
-}
+// matchZona, populateProvincias, populateLocalidades → shared.js
 
 // --- Period filter helpers ---
 let PERIOD_YEARS     = [];  // se llena en initApp() (MONTHS llega async, ver data-loader.js)
@@ -733,30 +602,10 @@ function getActiveMths() {
 }
 
 // --- Filter & aggregate ---
-// Memoización: getFiltered() y los totales de mercado se recalculan sólo cuando
-// cambian, respectivamente, los filtros o el rango de meses. Así paginar/cambiar
-// métrica del gráfico no re-escanea las ~200k filas ni re-agrega todo el dataset.
-function filtersSignature() {
-  return ['marca','modelo','cil','zona','provincia','localidad']
-    .map(k => k + ':' + [...msState[k]].sort().join(',')).join('|');
-}
-let _gfSig = null, _gfCache = null;
+// getFiltered() (memoizado) → shared.js. Acá sólo el cache de totales de mercado,
+// que depende del rango de meses (propio del Evolutivo).
 let _mktKey = null, _mktCache = null;
-function invalidateCaches() { _gfSig = null; _gfCache = null; _mktKey = null; _mktCache = null; }
-function getFiltered() {
-  const sig = filtersSignature();
-  if (sig === _gfSig && _gfCache) return _gfCache;
-  _gfSig = sig;
-  _gfCache = RAW_DATA.filter(r =>
-    (msState.marca.size  === 0 || msState.marca.has(r.marca)) &&
-    (msState.modelo.size === 0 || msState.modelo.has(r.modelo)) &&
-    (msState.cil.size    === 0 || msState.cil.has(r.cilindrada)) &&
-    matchZona(r) &&
-    (msState.provincia.size === 0 || msState.provincia.has(r.provincia)) &&
-    (msState.localidad.size === 0 || msState.localidad.has(r.localidad))
-  );
-  return _gfCache;
-}
+function invalidateCaches() { invalidateFiltered(); _mktKey = null; _mktCache = null; }
 // Totales de mercado (100%) por mes: dependen sólo del rango de meses, no de filtros.
 function getMarketTotals(mths) {
   const key = mths.join(',');
