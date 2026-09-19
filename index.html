@@ -56,13 +56,13 @@ header {
   font-size: 12px; background: #f7f9fd; color: #1F3864; outline: none;
   cursor: pointer; min-width: 0;
 }
-.filter-group select:focus { border-color: #2E5FA3; background: #fff; }
+.filter-group select:focus { border-color: #1e3a8a; background: #fff; }
 .btn-reset {
-  background: #1F3864; color: #fff; border: none; border-radius: 6px;
+  background: #1e3a8a; color: #fff; border: none; border-radius: 6px;
   padding: 5px 14px; font-size: 12px; cursor: pointer; align-self: flex-end;
   transition: background .15s; white-space: nowrap; flex-shrink: 0;
 }
-.btn-reset:hover { background: #2E5FA3; }
+.btn-reset:hover { background: #16307a; }
 
 /* MULTISELECT */
 .ms-wrap { position: relative; width: 130px; flex-shrink: 0; }
@@ -74,7 +74,7 @@ header {
   display: flex; align-items: center; position: relative;
 }
 .ms-trigger::after { content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #888; }
-.ms-trigger.open { border-color: #2E5FA3; background: #fff; }
+.ms-trigger.open { border-color: #1e3a8a; background: #fff; }
 .ms-dropdown {
   display: none; position: fixed;
   background: #fff; border: 1px solid #ccd5e8; border-radius: 6px;
@@ -84,20 +84,22 @@ header {
 .ms-dropdown.open { display: block; }
 .ms-search { padding: 5px 8px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: #fff; }
 .ms-search input { width: 100%; border: 1px solid #dde3ee; border-radius: 4px; padding: 5px 8px; font-size: 12px; outline: none; }
-.ms-search input:focus { border-color: #2E5FA3; }
+.ms-search input:focus { border-color: #1e3a8a; }
 .ms-actions { padding: 4px 8px; border-bottom: 1px solid #eee; display: flex; gap: 8px; position: sticky; top: 41px; background: #fff; }
-.ms-actions button { font-size: 11px; color: #2E5FA3; background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
+.ms-actions button { font-size: 11px; color: #1e3a8a; background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
 .ms-list { padding: 2px 0; }
 .ms-item { display: flex; align-items: center; justify-content: flex-start; gap: 6px; width: 100%; box-sizing: border-box; padding: 3px 10px; cursor: pointer; font-size: 11px; white-space: nowrap; }
 .ms-item:hover { background: #f0f3f8; }
-.ms-item input[type=checkbox] { width: 12px; height: 12px; margin: 0; padding: 0; accent-color: #2E5FA3; flex-shrink: 0; cursor: pointer; }
+.ms-item input[type=checkbox] { width: 12px; height: 12px; margin: 0; padding: 0; accent-color: #1e3a8a; flex-shrink: 0; cursor: pointer; }
 .ms-item span { text-align: left; }
-.ms-count { display: inline-block; background: #2E5FA3; color: #fff; border-radius: 10px; font-size: 10px; padding: 1px 6px; margin-left: 4px; }
+.ms-count { display: inline-block; background: #1e3a8a; color: #fff; border-radius: 10px; font-size: 10px; padding: 1px 6px; margin-left: 4px; }
 .ms-sep { height: 0; border-top: 1px solid #d3dcea; margin: 4px 8px; }
 .view-toggle { display: flex; border: 1px solid #ccd5e8; border-radius: 6px; overflow: hidden; height: 30px; }
 .view-btn { border: none; background: #f7f9fd; color: #556; font-size: 12px; font-weight: 600; padding: 0 12px; cursor: pointer; font-family: inherit; }
 .view-btn + .view-btn { border-left: 1px solid #ccd5e8; }
-.view-btn.active { background: #2E5FA3; color: #fff; }
+.view-btn.active { background: #1e3a8a; color: #fff; }
+.hint { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:#1e3a8a; color:#fff; font-size:10px; font-weight:700; cursor:pointer; vertical-align:middle; }
+.hint-box { position:absolute; top:100%; left:0; z-index:200; margin-top:4px; width:240px; max-width:70vw; background:#0f172a; color:#fff; font-size:11px; font-weight:400; line-height:1.45; padding:8px 10px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.25); text-transform:none; letter-spacing:0; }
 
 /* Filtros deshabilitados */
 select:disabled {
@@ -147,7 +149,7 @@ tbody tr:hover { background: #e8edf8; }
 tbody td { padding: 5px 8px; text-align: right; border-bottom: 1px solid #eee; white-space: nowrap; }
 .neg { color: #e74c3c; font-weight: 600; }
 .pos { color: #27ae60; font-weight: 600; }
-.total-row td { background: #d9e1f2 !important; font-weight: 700; border-top: 2px solid #2E5FA3; }
+.total-row td { background: #d9e1f2 !important; font-weight: 700; border-top: 2px solid #1e3a8a; }
 /* Column resize handle (mantener sticky para que el header quede fijo al scrollear) */
 thead th { position: sticky; top: 0; }
 .col-resizer {
@@ -167,10 +169,10 @@ thead th { position: sticky; top: 0; user-select: none; }
 
 /* TOGGLE */
 .btn-toggle {
-  border: 1.5px solid #2E5FA3; background: #fff; color: #2E5FA3;
+  border: 1.5px solid #1e3a8a; background: #fff; color: #1e3a8a;
   border-radius: 6px; padding: 5px 14px; font-size: 12px; cursor: pointer; transition: all .15s;
 }
-.btn-toggle.active { background: #2E5FA3; color: #fff; }
+.btn-toggle.active { background: #1e3a8a; color: #fff; }
 </style>
 </head>
 <body>
@@ -195,8 +197,9 @@ thead th { position: sticky; top: 0; user-select: none; }
     <label>Hasta</label>
     <select id="ins-month-b" style="width:90px" onchange="updateInsights()"></select>
   </div>
-  <div class="filter-group" style="min-width:auto">
-    <label>Vista</label>
+  <div class="filter-group" style="min-width:auto;position:relative">
+    <label>Vista <span class="hint" onclick="toggleHint(event,'hint-vista')">?</span></label>
+    <div id="hint-vista" class="hint-box" style="display:none">La vista <b>Normalizado</b> prorratea el mes <b>Desde</b> a los mismos días transcurridos del mes <b>Hasta</b>, para comparar parejo cuando el mes actual todavía no terminó. El mes actual queda con su número real.</div>
     <div class="view-toggle">
       <button id="view-real" class="view-btn active" onclick="setView('real')">Real</button>
       <button id="view-norm" class="view-btn" onclick="setView('norm')" title="Prorratea el mes 'Desde' a los mismos días transcurridos del mes 'Hasta'">Normalizado</button>
@@ -856,7 +859,7 @@ function sortArr(arr, col, dir) {
 }
 function thStyle(table, col) {
   const s = sortState[table];
-  return `cursor:pointer;user-select:none${s.col===col?';background:#2E5FA3':''}" onclick="sortBy('${table}','${col}')`;
+  return `cursor:pointer;user-select:none${s.col===col?';background:#1e3a8a':''}" onclick="sortBy('${table}','${col}')`;
 }
 function arrow(table, col) {
   const s = sortState[table];
@@ -875,6 +878,15 @@ function setView(m) {
   if (r && n) { r.classList.toggle('active', m === 'real'); n.classList.toggle('active', m === 'norm'); }
   updateInsights();
 }
+// Ayuda tocable (?) — funciona en mobile (a diferencia del tooltip title=)
+function toggleHint(ev, id) {
+  ev.stopPropagation();
+  const box = document.getElementById(id);
+  const open = box.style.display !== 'none';
+  document.querySelectorAll('.hint-box').forEach(b => b.style.display = 'none');
+  box.style.display = open ? 'none' : 'block';
+}
+document.addEventListener('click', () => document.querySelectorAll('.hint-box').forEach(b => b.style.display = 'none'));
 // Factor de prorrateo de mA y días efectivos de mB (según Última actualización)
 function computeNormA(mA, mB) {
   const dim = (m, y) => new Date(y, m, 0).getDate();

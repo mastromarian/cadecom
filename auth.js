@@ -35,7 +35,7 @@
   gate.id = 'auth-gate';
   gate.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;display:flex;align-items:center;justify-content:center;padding:20px;font-family:inherit;';
   gate.innerHTML =
-    '<div style="background:#fff;padding:30px 28px;border-radius:14px;width:340px;max-width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);border-top:4px solid #2E5FA3;">' +
+    '<div style="background:#fff;padding:30px 28px;border-radius:14px;width:340px;max-width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);border-top:4px solid #1e3a8a;">' +
       '<div style="font-weight:800;font-size:17px;margin-bottom:4px;color:#0f172a;">CADECOM — Iniciar sesión</div>' +
       '<div id="auth-sub" style="font-size:13px;color:#64748b;margin-bottom:18px;">Verificando sesión…</div>' +
       '<div id="auth-form" style="display:none;">' +
@@ -44,7 +44,7 @@
         '<input id="auth-pass" type="password" placeholder="Contraseña" autocomplete="current-password" ' +
           'style="width:100%;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;outline:none;font-family:inherit;">' +
         '<div id="auth-err" style="color:#e3000f;font-size:12px;font-weight:600;min-height:16px;margin-top:8px;"></div>' +
-        '<button id="auth-btn" style="width:100%;margin-top:10px;padding:11px;background:#2E5FA3;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Entrar</button>' +
+        '<button id="auth-btn" style="width:100%;margin-top:10px;padding:11px;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Entrar</button>' +
       '</div>' +
     '</div>';
   (document.body || document.documentElement).appendChild(gate);
@@ -80,7 +80,7 @@
       '<div style="background:#fff;padding:30px 28px;border-radius:14px;width:360px;max-width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);border-top:4px solid #e3000f;">' +
         '<div style="font-weight:800;font-size:17px;margin-bottom:8px;color:#0f172a;">Acceso restringido</div>' +
         '<div style="font-size:13px;color:#475569;line-height:1.5;margin-bottom:18px;">Tu usuario <b>' + (email || '') + '</b> es de solo lectura.<br>Este tablero es exclusivo para administradores.</div>' +
-        '<button id="auth-logout" style="width:100%;padding:11px;background:#2E5FA3;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Salir</button>' +
+        '<button id="auth-logout" style="width:100%;padding:11px;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Salir</button>' +
       '</div>';
     const lo = $('auth-logout'); if (lo) lo.addEventListener('click', logout);
   }

@@ -58,13 +58,13 @@ header {
   font-size: 12px; background: #f7f9fd; color: #1F3864; outline: none;
   cursor: pointer; min-width: 0;
 }
-.filter-group select:focus { border-color: #2E5FA3; background: #fff; }
+.filter-group select:focus { border-color: #1e3a8a; background: #fff; }
 .btn-reset {
-  background: #1F3864; color: #fff; border: none; border-radius: 6px;
+  background: #1e3a8a; color: #fff; border: none; border-radius: 6px;
   padding: 5px 14px; font-size: 12px; cursor: pointer; align-self: flex-end;
   transition: background .15s; white-space: nowrap; flex-shrink: 0;
 }
-.btn-reset:hover { background: #2E5FA3; }
+.btn-reset:hover { background: #16307a; }
 
 /* ── Responsive / mobile ── */
 @media (max-width: 640px) {
@@ -91,7 +91,7 @@ header {
   content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
   font-size: 11px; color: #888;
 }
-.ms-trigger.open { border-color: #2E5FA3; background: #fff; }
+.ms-trigger.open { border-color: #1e3a8a; background: #fff; }
 .ms-dropdown {
   display: none; position: fixed;
   background: #fff; border: 1px solid #ccd5e8; border-radius: 6px;
@@ -107,13 +107,13 @@ header {
   width: 100%; border: 1px solid #dde3ee; border-radius: 4px;
   padding: 5px 8px; font-size: 12px; outline: none;
 }
-.ms-search input:focus { border-color: #2E5FA3; }
+.ms-search input:focus { border-color: #1e3a8a; }
 .ms-actions {
   padding: 4px 8px; border-bottom: 1px solid #eee; display: flex; gap: 8px;
   position: sticky; top: 41px; background: #fff;
 }
 .ms-actions button {
-  font-size: 11px; color: #2E5FA3; background: none; border: none;
+  font-size: 11px; color: #1e3a8a; background: none; border: none;
   cursor: pointer; padding: 0; text-decoration: underline;
 }
 .ms-list { padding: 2px 0; }
@@ -123,10 +123,10 @@ header {
   padding: 3px 10px; cursor: pointer; font-size: 11px; white-space: nowrap;
 }
 .ms-item:hover { background: #f0f3f8; }
-.ms-item input[type=checkbox] { width: 12px; height: 12px; margin: 0; padding: 0; accent-color: #2E5FA3; flex-shrink: 0; cursor: pointer; }
+.ms-item input[type=checkbox] { width: 12px; height: 12px; margin: 0; padding: 0; accent-color: #1e3a8a; flex-shrink: 0; cursor: pointer; }
 .ms-item span { text-align: left; }
 .ms-count {
-  display: inline-block; background: #2E5FA3; color: #fff;
+  display: inline-block; background: #1e3a8a; color: #fff;
   border-radius: 10px; font-size: 10px; padding: 1px 6px; margin-left: 4px;
 }
 .ms-sep { height: 0; border-top: 1px solid #d3dcea; margin: 4px 8px; }
@@ -138,7 +138,7 @@ header {
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
 .kpi {
   background: #fff; border-radius: 10px; padding: 16px 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.06); border-left: 4px solid #2E5FA3;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06); border-left: 4px solid #1e3a8a;
   transition: transform .1s;
 }
 .kpi:hover { transform: translateY(-2px); }
@@ -157,10 +157,10 @@ header {
 }
 .view-toggle span { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #888; margin-right: 4px; }
 .btn-toggle {
-  border: 1.5px solid #2E5FA3; background: #fff; color: #2E5FA3;
+  border: 1.5px solid #1e3a8a; background: #fff; color: #1e3a8a;
   border-radius: 6px; padding: 5px 14px; font-size: 12px; cursor: pointer; transition: all .15s;
 }
-.btn-toggle.active { background: #2E5FA3; color: #fff; }
+.btn-toggle.active { background: #1e3a8a; color: #fff; }
 
 /* CARDS */
 .card {
@@ -184,7 +184,7 @@ tbody tr:nth-child(even) { background: #f5f7fc; }
 tbody tr:hover { background: #e8edf8; }
 tbody td { padding: 7px 10px; text-align: right; border-bottom: 1px solid #eee; white-space: nowrap; }
 tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align: left; font-weight: 600; }
-.total-row td { background: #d9e1f2 !important; font-weight: 700; border-top: 2px solid #2E5FA3; }
+.total-row td { background: #d9e1f2 !important; font-weight: 700; border-top: 2px solid #1e3a8a; }
 
 /* Tabla evolutiva: caja con scroll propio (vertical y horizontal) para fijar
    el encabezado y las primeras columnas */
@@ -253,7 +253,7 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
 /* share bar in table */
 .bar-wrap { display: flex; align-items: center; gap: 6px; }
 .bar-bg { background: #e8edf8; border-radius: 3px; height: 7px; width: 60px; flex-shrink: 0; overflow: hidden; }
-.bar-fg { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2E5FA3, #5B9BD5); }
+.bar-fg { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #1e3a8a, #5B9BD5); }
 
 /* Pagination */
 .pagination { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: #666; }
@@ -458,7 +458,7 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
 // Lista completa de meses (viene en data.js); la historia se carga en diferido
 const MONTHS = ALL_MONTHS;
 const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '/' + mm; });
-const COLORS = ['#1F3864','#2E5FA3','#4472C4','#5B9BD5','#9DC3E6','#F39C12','#E74C3C','#27AE60','#8E44AD','#16A085','#D35400','#2C3E50','#1ABC9C','#E67E22','#C0392B','#7F8C8D','#2980B9','#8E44AD','#27AE60','#F1C40F'];
+const COLORS = ['#1F3864','#1e3a8a','#4472C4','#5B9BD5','#9DC3E6','#F39C12','#E74C3C','#27AE60','#8E44AD','#16A085','#D35400','#2C3E50','#1ABC9C','#E67E22','#C0392B','#7F8C8D','#2980B9','#8E44AD','#27AE60','#F1C40F'];
 
 let metricMarca = 'nominal';
 let groupMarca  = 'marca';   // 'marca' = una línea por marca | 'total' = una sola línea total

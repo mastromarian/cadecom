@@ -35,15 +35,15 @@ header { background: #fff; color: #0f172a; padding: 0 26px; display: flex; align
 .card h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1F3864; margin-bottom: 6px; }
 .card .sub { font-size: 12px; color: #64748b; margin-bottom: 16px; line-height: 1.5; }
 .drop { display: block; border: 2px dashed #c8d0e0; border-radius: 10px; padding: 22px; text-align: center; background: #f7f9fd; cursor: pointer; transition: border-color .15s, background .15s; }
-.drop:hover { border-color: #2E5FA3; background: #eef3fb; }
+.drop:hover { border-color: #1e3a8a; background: #eef3fb; }
 .drop.has { border-color: #34c759; background: #f0fbf3; }
 .drop input { display: none; }
 .fname { font-weight: 700; color: #1F3864; margin-top: 6px; word-break: break-all; }
-.btn { margin-top: 14px; padding: 11px 18px; background: #2E5FA3; color: #fff; border: none; border-radius: 8px;
+.btn { margin-top: 14px; padding: 11px 18px; background: #1e3a8a; color: #fff; border: none; border-radius: 8px;
   font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .btn-sm { padding: 5px 10px; font-size: 12px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; }
-.btn-edit { background: #eef3fb; color: #2E5FA3; }
+.btn-edit { background: #eef3fb; color: #1e3a8a; }
 .btn-edit:hover { background: #dde8f7; }
 .btn-del  { background: #fdeaea; color: #b3000f; }
 .btn-del:hover  { background: #fbd5d5; }
@@ -69,13 +69,13 @@ header { background: #fff; color: #0f172a; padding: 0 26px; display: flex; align
 .itab { padding: 8px 20px; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer;
   border: none; background: none; border-bottom: 3px solid transparent; margin-bottom: -2px;
   font-family: inherit; transition: color .15s; }
-.itab.active { color: #1F3864; border-bottom-color: #2E5FA3; }
+.itab.active { color: #1F3864; border-bottom-color: #1e3a8a; }
 .itab:hover:not(.active) { color: #1a1a2e; }
 /* Modelos */
 .moto-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
 .moto-search { flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid #d6deea; border-radius: 8px;
   font-size: 13px; font-family: inherit; outline: none; }
-.moto-search:focus { border-color: #2E5FA3; }
+.moto-search:focus { border-color: #1e3a8a; }
 .moto-count { font-size: 12px; color: #64748b; white-space: nowrap; }
 .moto-table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 14px; }
 .moto-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -90,12 +90,12 @@ header { background: #fff; color: #0f172a; padding: 0 26px; display: flex; align
 .td-actions { white-space: nowrap; display: flex; gap: 5px; }
 .ed-input { width: 100%; padding: 4px 7px; border: 1px solid #9DC3E6; border-radius: 5px;
   font-size: 12.5px; font-family: inherit; background: #fff; }
-.ed-input:focus { outline: none; border-color: #2E5FA3; }
+.ed-input:focus { outline: none; border-color: #1e3a8a; }
 .pagination { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 8px; }
 .pg-btn { padding: 5px 10px; border: 1px solid #d6deea; border-radius: 6px; cursor: pointer; background: #fff;
   font-size: 12px; font-family: inherit; }
 .pg-btn:hover { background: #eef3fb; }
-.pg-btn.active { background: #2E5FA3; color: #fff; border-color: #2E5FA3; }
+.pg-btn.active { background: #1e3a8a; color: #fff; border-color: #1e3a8a; }
 .pg-btn:disabled { opacity: .4; cursor: default; }
 /* Modal para agregar */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 500; align-items: center; justify-content: center; }
@@ -105,7 +105,7 @@ header { background: #fff; color: #0f172a; padding: 0 26px; display: flex; align
 .form-row { margin-bottom: 12px; }
 .form-row label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #64748b; margin-bottom: 4px; }
 .form-row input { width: 100%; padding: 8px 10px; border: 1px solid #d6deea; border-radius: 7px; font-size: 13px; font-family: inherit; }
-.form-row input:focus { outline: none; border-color: #2E5FA3; }
+.form-row input:focus { outline: none; border-color: #1e3a8a; }
 .modal-actions { display: flex; gap: 8px; margin-top: 18px; justify-content: flex-end; }
 .moto-status { margin-bottom: 14px; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none; }
 .moto-status.show { display: block; }
@@ -139,7 +139,7 @@ header { background: #fff; color: #0f172a; padding: 0 26px; display: flex; align
     <div class="card">
       <h2>Cómo descargar el archivo de Cadecom</h2>
       <ul class="sub" style="padding-left:18px;list-style:disc;margin-top:4px">
-        <li>En la web de <a href="https://estadisticas.cadecom.org.ar/" target="_blank" rel="noopener" style="color:#2E5FA3;font-weight:700;text-decoration:underline">Cadecom</a>, generá el reporte con esta configuración. Con otro formato no permite actualizar.</li>
+        <li>En la web de <a href="https://estadisticas.cadecom.org.ar/" target="_blank" rel="noopener" style="color:#1e3a8a;font-weight:700;text-decoration:underline">Cadecom</a>, generá el reporte con esta configuración. Con otro formato no permite actualizar.</li>
         <li>Los campos <b style="color:#b3000f">resaltados en rojo</b> tienen que ser exactamente esos.</li>
         <li><b style="color:#8a6d00">Fecha hasta</b> varía según el período.</li>
       </ul>
