@@ -905,19 +905,20 @@ function computeNormA(mA, mB) {
   return { factor: daysA ? N / daysA : 1, N };
 }
 
-// --- "Ver más": corte por defecto en Top N, con botón para expandir ---
+// --- "Ver más": corte inicial en TOP_N, y suma de a TOP_N por click ---
 const TOP_N = 20;
-let showAllBrands = false, showAllModels = false;
-function toggleShowAll(which) {
-  if (which === 'brands') showAllBrands = !showAllBrands;
-  else showAllModels = !showAllModels;
+let brandsLimit = TOP_N, modelsLimit = TOP_N;
+function showMore(which) {
+  if (which === 'brands') brandsLimit += TOP_N;
+  else modelsLimit += TOP_N;
   updateInsights();
 }
-function verMasRow(total, which, colspan, word) {
-  if (total <= TOP_N) return '';
-  const shown = which === 'brands' ? showAllBrands : showAllModels;
-  const label = shown ? 'Ver menos ▲' : `Ver ${word} (${total}) ▼`;
-  return `<tr class="ver-mas-row"><td colspan="${colspan}"><button class="ver-mas" onclick="toggleShowAll('${which}')">${label}</button></td></tr>`;
+function verMasRow(total, which, colspan) {
+  const limit = which === 'brands' ? brandsLimit : modelsLimit;
+  if (total <= limit) return '';
+  const remaining = total - limit;
+  const step = Math.min(TOP_N, remaining);
+  return `<tr class="ver-mas-row"><td colspan="${colspan}"><button class="ver-mas" onclick="showMore('${which}')">Ver ${step} más ▼ <span style="color:#94a3b8;font-weight:600">· ${remaining} restantes</span></button></td></tr>`;
 }
 
 // --- Insights / Variaciones del mes ---
@@ -952,7 +953,7 @@ function updateInsights() {
   const brands = allBrandRows.filter(b => (b.b || 0) > 0 || (b.a || 0) > 0);
 
   const sortedBrands = sortArr(brands, sortState.brands.col, sortState.brands.dir);
-  const brandsShown = showAllBrands ? sortedBrands : sortedBrands.slice(0, TOP_N);
+  const brandsShown = sortedBrands.slice(0, brandsLimit);
 
   document.getElementById('ins-brands-head').innerHTML = `<tr>
     <th style="text-align:center;width:28px">#</th>
@@ -978,7 +979,7 @@ function updateInsights() {
       <td style="text-align:right;font-weight:700">${b.b.toLocaleString('es-AR')}</td>
       <td class="${cls}" style="text-align:right">${sign}${b.varAbs.toLocaleString('es-AR')}</td>
       <td class="${cls}" style="text-align:right;font-weight:700">${pct}</td></tr>`;
-  }).join('') + verMasRow(sortedBrands.length, 'brands', 6, 'todas') + (() => {
+  }).join('') + verMasRow(sortedBrands.length, 'brands', 6) + (() => {
     const shownA = brandsShown.reduce((s,b)=>s+b.a,0);
     const shownB = brandsShown.reduce((s,b)=>s+b.b,0);
     const restoA = mktA - shownA, restoB = mktB - shownB;
@@ -1088,9 +1089,9 @@ function updateInsights() {
       </tr>`;
   }
 
-  const modelsShown = showAllModels ? models : models.slice(0, TOP_N);
+  const modelsShown = models.slice(0, modelsLimit);
   document.getElementById('ins-models-head').innerHTML = mkHead('models');
-  document.getElementById('ins-models-body').innerHTML = mkRows(modelsShown) + verMasRow(models.length, 'models', 7, 'todos') + mkTotal(modelsShown);
+  document.getElementById('ins-models-body').innerHTML = mkRows(modelsShown) + verMasRow(models.length, 'models', 7) + mkTotal(modelsShown);
 
 
   generateAutoInsights(allFiltered, mA, mB, lA, lB);
