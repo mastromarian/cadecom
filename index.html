@@ -150,6 +150,9 @@ tbody td { padding: 5px 8px; text-align: right; border-bottom: 1px solid #eee; w
 .neg { color: #e74c3c; font-weight: 600; }
 .pos { color: #27ae60; font-weight: 600; }
 .total-row td { background: #d9e1f2 !important; font-weight: 700; border-top: 2px solid #1e3a8a; }
+.ver-mas-row td { text-align: center; padding: 5px; background: #fff; border-top: 1px solid #eef1f7; }
+.ver-mas { background: none; border: none; color: #1e3a8a; font-weight: 700; font-size: 12px; cursor: pointer; font-family: inherit; padding: 4px 12px; border-radius: 6px; }
+.ver-mas:hover { background: #eff2fb; }
 /* Column resize handle (mantener sticky para que el header quede fijo al scrollear) */
 thead th { position: sticky; top: 0; }
 .col-resizer {
@@ -902,6 +905,21 @@ function computeNormA(mA, mB) {
   return { factor: daysA ? N / daysA : 1, N };
 }
 
+// --- "Ver más": corte por defecto en Top N, con botón para expandir ---
+const TOP_N = 20;
+let showAllBrands = false, showAllModels = false;
+function toggleShowAll(which) {
+  if (which === 'brands') showAllBrands = !showAllBrands;
+  else showAllModels = !showAllModels;
+  updateInsights();
+}
+function verMasRow(total, which, colspan, word) {
+  if (total <= TOP_N) return '';
+  const shown = which === 'brands' ? showAllBrands : showAllModels;
+  const label = shown ? 'Ver menos ▲' : `Ver ${word} (${total}) ▼`;
+  return `<tr class="ver-mas-row"><td colspan="${colspan}"><button class="ver-mas" onclick="toggleShowAll('${which}')">${label}</button></td></tr>`;
+}
+
 // --- Insights / Variaciones del mes ---
 function updateInsights() {
   const mA        = document.getElementById('ins-month-a').value;
@@ -934,6 +952,7 @@ function updateInsights() {
   const brands = allBrandRows.filter(b => (b.b || 0) > 0 || (b.a || 0) > 0);
 
   const sortedBrands = sortArr(brands, sortState.brands.col, sortState.brands.dir);
+  const brandsShown = showAllBrands ? sortedBrands : sortedBrands.slice(0, TOP_N);
 
   document.getElementById('ins-brands-head').innerHTML = `<tr>
     <th style="text-align:center;width:28px">#</th>
@@ -943,7 +962,7 @@ function updateInsights() {
     <th style="text-align:right;white-space:nowrap;${thStyle('brands','varAbs')}">Var #${arrow('brands','varAbs')}</th>
     <th style="text-align:right;white-space:nowrap;min-width:52px;${thStyle('brands','varPct')}">Var %${arrow('brands','varPct')}</th></tr>`;
 
-  document.getElementById('ins-brands-body').innerHTML = sortedBrands.map((b,i) => {
+  document.getElementById('ins-brands-body').innerHTML = brandsShown.map((b,i) => {
     const cls=b.varAbs>0?'pos':b.varAbs<0?'neg':'', sign=b.varAbs>0?'+':'';
     const pct=b.varPct!==null?`${sign}${b.varPct.toFixed(0)}%`:'—';
     const color = getBrandColor(b.marca);
@@ -959,9 +978,9 @@ function updateInsights() {
       <td style="text-align:right;font-weight:700">${b.b.toLocaleString('es-AR')}</td>
       <td class="${cls}" style="text-align:right">${sign}${b.varAbs.toLocaleString('es-AR')}</td>
       <td class="${cls}" style="text-align:right;font-weight:700">${pct}</td></tr>`;
-  }).join('') + (() => {
-    const shownA = brands.reduce((s,b)=>s+b.a,0);
-    const shownB = brands.reduce((s,b)=>s+b.b,0);
+  }).join('') + verMasRow(sortedBrands.length, 'brands', 6, 'todas') + (() => {
+    const shownA = brandsShown.reduce((s,b)=>s+b.a,0);
+    const shownB = brandsShown.reduce((s,b)=>s+b.b,0);
     const restoA = mktA - shownA, restoB = mktB - shownB;
     const restoVar = restoA ? (restoB-restoA)/restoA*100 : null;
     const rCls = restoB>restoA?'pos':restoB<restoA?'neg':'', rSign=restoB>restoA?'+':'';
@@ -1069,8 +1088,9 @@ function updateInsights() {
       </tr>`;
   }
 
+  const modelsShown = showAllModels ? models : models.slice(0, TOP_N);
   document.getElementById('ins-models-head').innerHTML = mkHead('models');
-  document.getElementById('ins-models-body').innerHTML = mkRows(models) + mkTotal(models);
+  document.getElementById('ins-models-body').innerHTML = mkRows(modelsShown) + verMasRow(models.length, 'models', 7, 'todos') + mkTotal(modelsShown);
 
 
   generateAutoInsights(allFiltered, mA, mB, lA, lB);
