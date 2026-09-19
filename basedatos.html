@@ -24,6 +24,12 @@ header { background: #fff; color: #0f172a; padding: 0 26px; display: flex; align
   border-radius: 8px; white-space: nowrap; line-height: 1.4; transition: color .15s, background .15s; }
 .nav-item:hover { color: #0f172a; background: #f8fafc; }
 .nav-item.active { color: #e3000f; background: #fff1f2; }
+@media (max-width: 640px) {
+  header { padding: 0 14px; gap: 8px 14px; min-height: 52px; }
+  .brand-logo { height: 28px; }
+  .nav-item { font-size: 13px; padding: 7px 9px; }
+  .main { padding: 0 14px; margin: 16px auto; }
+}
 .main { max-width: 860px; margin: 24px auto; padding: 0 20px; }
 .card { background: #fff; border-radius: 10px; padding: 22px 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 18px; }
 .card h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1F3864; margin-bottom: 6px; }

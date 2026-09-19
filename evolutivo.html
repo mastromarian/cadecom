@@ -47,9 +47,8 @@ header {
   background: #fff;
   border-bottom: 1px solid #dde3ee;
   padding: 8px 20px;
-  display: flex; flex-wrap: nowrap; gap: 8px; align-items: flex-end;
+  display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end;
   box-shadow: 0 2px 6px rgba(0,0,0,.08);
-  overflow-x: auto;
   position: sticky; top: 0; z-index: 98;
 }
 .filter-group { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex-shrink: 0; }
@@ -66,6 +65,17 @@ header {
   transition: background .15s; white-space: nowrap; flex-shrink: 0;
 }
 .btn-reset:hover { background: #2E5FA3; }
+
+/* ── Responsive / mobile ── */
+@media (max-width: 640px) {
+  header { padding: 0 14px; gap: 8px 14px; min-height: 52px; }
+  .brand-logo { height: 28px; }
+  .nav-item { font-size: 13px; padding: 7px 9px; }
+  .update-banner { font-size: 10px; padding: 2px 7px; }
+  .filters-bar { padding: 8px 12px; position: static; }
+  .filter-group { flex: 1 1 130px; }
+  .ms-wrap { width: 100%; }
+}
 
 /* MULTISELECT */
 .ms-wrap { position: relative; width: 130px; flex-shrink: 0; }
