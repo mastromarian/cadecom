@@ -907,7 +907,7 @@ function computeNormA(mA, mB) {
 
 // --- "Ver más": corte inicial en TOP_N, y suma de a TOP_N por click ---
 const TOP_N = 20;
-let brandsLimit = TOP_N, modelsLimit = TOP_N;
+let brandsLimit = TOP_N, modelsLimit = 30;   // modelos arrancan en 30, marcas en 20
 function showMore(which) {
   if (which === 'brands') brandsLimit += TOP_N;
   else modelsLimit += TOP_N;
