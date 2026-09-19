@@ -10,7 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
-<script src="https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data.js"></script>
+<script src="data-loader.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Barlow', Arial, Helvetica, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
@@ -134,22 +134,6 @@ header {
 /* MAIN */
 .main { max-width: 1400px; margin: 0 auto; padding: 20px 20px; }
 
-/* KPIs */
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
-.kpi {
-  background: #fff; border-radius: 10px; padding: 16px 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.06); border-left: 4px solid #1e3a8a;
-  transition: transform .1s;
-}
-.kpi:hover { transform: translateY(-2px); }
-.kpi.kpi-red   { border-left-color: #e74c3c; }
-.kpi.kpi-green { border-left-color: #27ae60; }
-.kpi.kpi-gold  { border-left-color: #f39c12; }
-.kpi label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #999; }
-.kpi .val { font-size: 26px; font-weight: 700; color: #1F3864; margin: 5px 0 2px; }
-.kpi .val.neg { color: #e74c3c; }
-.kpi .val.pos { color: #27ae60; }
-.kpi .sub { font-size: 11px; color: #bbb; }
 
 /* TOGGLE */
 .view-toggle {
@@ -265,7 +249,6 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 
 @media (max-width: 900px) {
-  .kpis { grid-template-columns: repeat(2, 1fr); }
   .grid2 { grid-template-columns: 1fr; }
   .filters-bar { padding: 12px 16px; }
 }
@@ -456,8 +439,9 @@ tbody td:nth-child(2), tbody td:nth-child(3), tbody td:nth-child(4) { text-align
 
 <script>
 // Lista completa de meses (viene en data.js); la historia se carga en diferido
-const MONTHS = ALL_MONTHS;
-const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '/' + mm; });
+// data.js se baja async (ver data-loader.js); se asignan en initApp().
+let MONTHS = [];
+let MONTH_LABELS = [];
 const COLORS = ['#1F3864','#1e3a8a','#4472C4','#5B9BD5','#9DC3E6','#F39C12','#E74C3C','#27AE60','#8E44AD','#16A085','#D35400','#2C3E50','#1ABC9C','#E67E22','#C0392B','#7F8C8D','#2980B9','#8E44AD','#27AE60','#F1C40F'];
 
 let metricMarca = 'nominal';
@@ -742,8 +726,9 @@ function resetFilters() {
 function getActiveMths() {
   const desde = document.getElementById('f-desde-month').value + '-' + document.getElementById('f-desde-year').value;
   const hasta = document.getElementById('f-hasta-month').value + '-' + document.getElementById('f-hasta-year').value;
-  const i0 = MONTHS.indexOf(desde), i1 = MONTHS.indexOf(hasta);
-  if (i0 < 0 || i1 < 0 || i0 > i1) return MONTHS;
+  let i0 = MONTHS.indexOf(desde), i1 = MONTHS.indexOf(hasta);
+  if (i0 < 0 || i1 < 0) return MONTHS;         // un mes elegido no existe en la base
+  if (i0 > i1) { const t = i0; i0 = i1; i1 = t; }  // Desde > Hasta → intercambiar (no mostrar todo en silencio)
   return MONTHS.slice(i0, i1+1);
 }
 
@@ -793,9 +778,6 @@ function aggregateByBrandModel(data, mths) {
   rows.forEach(o => { for (const m of mths) if (!(m in o.mths)) o.mths[m] = 0; });
   return rows.sort((a,b) => b.total - a.total);
 }
-
-// --- KPIs ---
-function updateKPIs() { /* KPIs removed */ }
 
 // --- Charts ---
 function destroyChart(c) { if (c) c.destroy(); }
@@ -847,8 +829,6 @@ function updateChartEvol(brands, mths, marketTotals) {
 
   if (metricMarca === 'stacked') {
     // stacked 100% bar — "Resto" bucket for brands not in top
-    const allBrands = brands;
-    const topSet = new Set(top.map(b => b.marca));
     const datasets = top.map((b, i) => ({
       label: b.marca,
       data: mths.map((m, mi) => totals[mi] ? +((b.mths[m] / totals[mi] * 100).toFixed(2)) : 0),
@@ -1033,6 +1013,15 @@ function updateChartEvolCil(filtered, mths, marketTotals) {
 
 // --- Table ---
 let tableSort = { col: 'total', dir: 1 };
+// Últimos datos calculados (para paginar sin re-filtrar/re-agregar todo el dataset)
+let lastRows = [], lastMths = [];
+
+// Variación mes/mes con base robusta: sin mes previo (o previo = 0) NO es "%",
+// es un modelo "nuevo" (o sin dato). Evita el falso +5000% cuando prev = 0.
+function varMoM(cur, prev) {
+  if (!prev) return { pct: null, isNew: (cur || 0) > 0 };
+  return { pct: (cur - prev) / prev, isNew: false };
+}
 
 // --- Table ---
 function sortTableBy(col) {
@@ -1043,6 +1032,7 @@ function sortTableBy(col) {
 }
 
 function updateTable(rows, mths) {
+  lastRows = rows; lastMths = mths;   // para changePage()
   const head = document.getElementById('tabla-head');
   const body = document.getElementById('tabla-body');
   const grandTotals = mths.map(m => rows.reduce((s,r) => s + r.mths[m], 0));
@@ -1061,8 +1051,10 @@ function updateTable(rows, mths) {
     if (tableSort.col === 'cilindrada') { av = a.cilindrada||''; bv = b.cilindrada||''; return tableSort.dir * av.localeCompare(bv); }
     if (tableSort.col === 'total')      { av = a.total; bv = b.total; }
     else if (tableSort.col === 'varmm') {
-      av = prevM ? (a.mths[lastM] - a.mths[prevM]) / (a.mths[prevM] || 1) : 0;
-      bv = prevM ? (b.mths[lastM] - b.mths[prevM]) / (b.mths[prevM] || 1) : 0;
+      const va = varMoM(a.mths[lastM], a.mths[prevM]);
+      const vb = varMoM(b.mths[lastM], b.mths[prevM]);
+      av = va.isNew ? Infinity : (va.pct ?? 0);   // los "nuevos" van a un extremo
+      bv = vb.isNew ? Infinity : (vb.pct ?? 0);
     } else { av = a.mths[tableSort.col] || 0; bv = b.mths[tableSort.col] || 0; }
     return tableSort.dir * (bv - av);
   });
@@ -1091,9 +1083,7 @@ function updateTable(rows, mths) {
 
   let bHTML = '';
   slice.forEach((r, idx) => {
-    const varMM = mths.length > 1
-      ? (r.mths[lastM] - r.mths[prevM]) / (r.mths[prevM] || 1)
-      : null;
+    const vm = mths.length > 1 ? varMoM(r.mths[lastM], r.mths[prevM]) : null;
     const share = grandTotal ? r.total / grandTotal : 0;
     const barW  = grandTotal ? Math.round(r.total / (rows[0]?.total || 1) * 100) : 0;
 
@@ -1113,9 +1103,10 @@ function updateTable(rows, mths) {
           <div class="bar-bg"><div class="bar-fg" style="width:${barW}%"></div></div>
         </div>
       </td>`;
-    if (mths.length > 1 && varMM !== null) {
-      const sign = varMM >= 0 ? '+' : '−';
-      bHTML += `<td class="${varMM >= 0 ? 'pos' : 'neg'}">${sign}${Math.abs(varMM*100).toFixed(1)}%</td>`;
+    if (mths.length > 1 && vm !== null) {
+      if (vm.isNew) bHTML += `<td class="pos">nuevo</td>`;
+      else if (vm.pct === null) bHTML += `<td><span style="color:#ccc">—</span></td>`;
+      else { const sign = vm.pct >= 0 ? '+' : '−'; bHTML += `<td class="${vm.pct >= 0 ? 'pos' : 'neg'}">${sign}${Math.abs(vm.pct*100).toFixed(1)}%</td>`; }
     }
     bHTML += `</tr>`;
   });
@@ -1142,8 +1133,9 @@ function updateTable(rows, mths) {
 }
 
 function changePage(dir) {
-  currentPage += dir;
-  update();
+  const pages = Math.max(1, Math.ceil(lastRows.length / PAGE_SIZE));
+  currentPage = Math.min(Math.max(1, currentPage + dir), pages);
+  updateTable(lastRows, lastMths);   // solo re-renderiza la tabla; NO re-filtra ni resetea la página
 }
 
 function setMetricMarca(m) {
@@ -1193,7 +1185,6 @@ function update() {
   const allBrands = aggregateByBrand(RAW_DATA, mths);
   const marketTotals = getTotalsPerMonth(allBrands, mths);
 
-  updateKPIs(brands, mths);
   updateChartEvol(brands, mths, marketTotals);
   updateChartEvolCil(filtered, mths, marketTotals);
   updateTable(rows, mths);
@@ -1209,7 +1200,7 @@ window.addEventListener('load',   setStickyTops);
 window.addEventListener('resize', setStickyTops);
 
 // --- Boot ---
-(function renderUpdateBanner(){
+function renderUpdateBanner(){
   const banner = document.getElementById('update-banner');
   if (!banner) return;
   if (typeof LAST_UPDATE === 'undefined' || !LAST_UPDATE) {
@@ -1227,10 +1218,16 @@ window.addEventListener('resize', setStickyTops);
   const hace = dias <= 0 ? 'hoy' : dias === 1 ? 'hace 1 día' : 'hace ' + dias + ' días';
   banner.className = 'update-banner ' + cls;
   banner.innerHTML = '<span class="ub-icon">' + icon + '</span><div>Última actualización: ' + LAST_UPDATE + ' (' + hace + ')</div>';
-})();
+}
 
-initFilters();
-update();
+// Arranque — se ejecuta cuando data.js ya fue bajado e inyectado (ver data-loader.js).
+function initApp() {
+  MONTHS = ALL_MONTHS;
+  MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '/' + mm; });
+  renderUpdateBanner();
+  initFilters();
+  update();
+}
 
 // --- Carga diferida de la historia (2013-2023) en segundo plano ---
 function onHistoriaLoaded() {
@@ -1242,11 +1239,9 @@ function onHistoriaLoaded() {
   rebuildModelos();
   update();
 }
-(function() {
-  const s = document.createElement('script');
-  s.src = 'https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data-historia.js'; s.async = true;
-  document.body.appendChild(s);
-})();
+
+// Bajar datos (autenticado, bucket privado) y arrancar. La historia va en diferido.
+loadCadecomData({ onReady: initApp, withHistoria: true });
 </script>
 </body>
 </html>

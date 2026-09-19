@@ -11,8 +11,7 @@
 <script src="auth.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="cadecom_build.js"></script>
-<script src="https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data.js"></script>
-<script src="https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data-historia.js"></script>
+<script src="data-loader.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Barlow', Arial, Helvetica, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
@@ -244,8 +243,11 @@ function switchTab(t) {
 }
 
 // ════════════ ACTUALIZAR DATOS (lógica original) ════════════
-const STORAGE = 'https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/';
 const BUCKET = 'cadecom';
+
+// Bajar la base (data.js + historia) autenticado; el bucket puede ser privado.
+// Los handlers ya chequean `typeof RAW_DATA === 'undefined'` mientras carga.
+loadCadecomData({ withHistoria: true });
 const drop = document.getElementById('drop'), fileInput = document.getElementById('file');
 const btn = document.getElementById('btn'), fname = document.getElementById('fname');
 const statusEl = document.getElementById('status');
@@ -269,8 +271,8 @@ async function procesar() {
   try {
     const buf = await chosen.arrayBuffer();
     setBusy(true, '⏳ Bajando BD_Geo y BD_Motos…');
-    const geo   = await (await fetch(STORAGE + 'BD_Geo.xlsx')).arrayBuffer();
-    const motos = await (await fetch(STORAGE + 'BD_Motos.xlsx')).arrayBuffer();
+    const geo   = await cadecomFetchBuffer('BD_Geo.xlsx');
+    const motos = await cadecomFetchBuffer('BD_Motos.xlsx');
 
     setBusy(true, '⏳ Validando y reprocesando… (puede tardar ~20s, no cierres la pestaña)');
     await new Promise(r => setTimeout(r, 60));
@@ -368,7 +370,7 @@ function motoStatus(msg, kind) {
 async function loadModelos() {
   motosLoaded = true;
   try {
-    const buf = await (await fetch(STORAGE + 'BD_Motos.xlsx?t=' + Date.now())).arrayBuffer();
+    const buf = await cadecomFetchBuffer('BD_Motos.xlsx');
     loadedFingerprint = fingerprint(buf);
     const wb = XLSX.read(buf, { type: 'array' });
     const ws = wb.Sheets['Consulta'] || wb.Sheets[wb.SheetNames[0]];
@@ -660,7 +662,7 @@ async function guardarModelos() {
   try {
     // Verificar que nadie haya cambiado el archivo mientras editabas
     motoStatus('⏳ Verificando cambios de otros…', 'info');
-    const fresh = await (await fetch(STORAGE + 'BD_Motos.xlsx?t=' + Date.now())).arrayBuffer();
+    const fresh = await cadecomFetchBuffer('BD_Motos.xlsx');
     if (loadedFingerprint && fingerprint(fresh) !== loadedFingerprint) {
       btnG.disabled = false;
       motoStatus('⚠️ Otra persona modificó la lista de modelos desde que la abriste. ' +
@@ -699,7 +701,7 @@ async function guardarModelos() {
     motoStatus('⏳ Aplicando los modelos a toda la base… (puede tardar ~20s, no cierres la pestaña)', 'info');
     await new Promise(r => setTimeout(r, 60));
 
-    const geo = await (await fetch(STORAGE + 'BD_Geo.xlsx')).arrayBuffer();
+    const geo = await cadecomFetchBuffer('BD_Geo.xlsx');
     const maps = CadecomBuild.loadGeoMotos(geo, xlsBuf);
     const records = CadecomBuild.recordsFromRawData(RAW_DATA);
     const out = CadecomBuild.generate(records, maps);

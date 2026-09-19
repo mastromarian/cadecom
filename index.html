@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
-<script src="https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data.js"></script>
+<script src="data-loader.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Barlow', Arial, Helvetica, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
@@ -153,21 +153,10 @@ tbody td { padding: 5px 8px; text-align: right; border-bottom: 1px solid #eee; w
 .ver-mas-row td { text-align: center; padding: 5px; background: #fff; border-top: 1px solid #eef1f7; }
 .ver-mas { background: none; border: none; color: #1e3a8a; font-weight: 700; font-size: 12px; cursor: pointer; font-family: inherit; padding: 4px 12px; border-radius: 6px; }
 .ver-mas:hover { background: #eff2fb; }
-/* Column resize handle (mantener sticky para que el header quede fijo al scrollear) */
-thead th { position: sticky; top: 0; }
-.col-resizer {
-  position: absolute; right: 0; top: 0; bottom: 0;
-  width: 5px; cursor: col-resize; z-index: 2;
-  user-select: none;
-}
-.col-resizer:hover, .col-resizer.resizing { background: rgba(255,255,255,.4); }
+/* Header fijo al scrollear */
+thead th { position: sticky; top: 0; user-select: none; }
 
 tr[style*="fde8c8"] td { background: #fde8c8 !important; }
-
-/* Column resize */
-thead th { position: sticky; top: 0; user-select: none; }
-.col-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 8px; cursor: col-resize; background: transparent; }
-.col-resize:hover { background: rgba(255,255,255,.3); }
 
 
 /* TOGGLE */
@@ -194,11 +183,11 @@ thead th { position: sticky; top: 0; user-select: none; }
 <div class="filters-bar">
   <div class="filter-group" style="min-width:auto">
     <label>Desde</label>
-    <select id="ins-month-a" style="width:90px" onchange="updateInsights()"></select>
+    <select id="ins-month-a" style="width:90px" onchange="resetPagingAndUpdate()"></select>
   </div>
   <div class="filter-group" style="min-width:auto">
     <label>Hasta</label>
-    <select id="ins-month-b" style="width:90px" onchange="updateInsights()"></select>
+    <select id="ins-month-b" style="width:90px" onchange="resetPagingAndUpdate()"></select>
   </div>
   <div class="filter-group" style="min-width:auto;position:relative">
     <label>Vista <span class="hint" onclick="toggleHint(event,'hint-vista')">?</span></label>
@@ -324,9 +313,11 @@ thead th { position: sticky; top: 0; user-select: none; }
 </div>
 
 <script>
-// Lista completa de meses (viene en data.js); la historia se carga en diferido
-const MONTHS = ALL_MONTHS;
-const MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '.' + mm; });
+// Lista completa de meses (viene en data.js); la historia se carga en diferido.
+// data.js se baja de forma asíncrona (ver data-loader.js), así que MONTHS/MONTH_LABELS
+// se asignan en initApp(), cuando ALL_MONTHS ya está disponible.
+let MONTHS = [];
+let MONTH_LABELS = [];
 
 // --- Multiselect ---
 const msState = { marca: new Set(), modelo: new Set(), cil: new Set(), zona: new Set(), provincia: new Set(), localidad: new Set() };
@@ -382,6 +373,7 @@ function filterMsList(key, q) {
 }
 function onMsChange(key, value, checked) {
   if (checked) msState[key].add(value); else msState[key].delete(value);
+  resetPaging();
   updateMsTrigger(key); refreshDependents(key); updateInsights();
 }
 function updateMsTrigger(key) {
@@ -396,11 +388,13 @@ function updateMsTrigger(key) {
 }
 function selectAllMs(key) {
   document.querySelectorAll(`#ms-${key}-list input`).forEach(c => { c.checked = true; msState[key].add(c.value); });
+  resetPaging();
   updateMsTrigger(key); refreshDependents(key); updateInsights();
 }
 function clearMs(key) {
   msState[key].clear();
   document.querySelectorAll(`#ms-${key}-list input`).forEach(c => c.checked = false);
+  resetPaging();
   updateMsTrigger(key); refreshDependents(key); updateInsights();
 }
 function toggleMs(key, event) {
@@ -444,15 +438,6 @@ function getFiltered() {
     matchZona(r) &&
     (msState.provincia.size === 0 || msState.provincia.has(r.provincia)) &&
     (msState.localidad.size === 0 || msState.localidad.has(r.localidad))
-  );
-}
-
-// Filtro GLOBAL: solo marca/cilindrada/modelo, SIN filtros geográficos
-function getFilteredGlobal() {
-  return RAW_DATA.filter(r =>
-    (msState.marca.size === 0  || msState.marca.has(r.marca)) &&
-    (msState.modelo.size === 0 || msState.modelo.has(r.modelo)) &&
-    (msState.cil.size === 0    || msState.cil.has(r.cilindrada))
   );
 }
 
@@ -581,6 +566,7 @@ function resetFilters() {
   populateProvincias();
   populateLocalidades();
   populateModelos();
+  resetPaging();
   updateInsights();
 }
 
@@ -612,34 +598,6 @@ function getBrandColor(marca) {
   return `hsl(${hue},55%,35%)`;
 }
 
-// --- Brand logos (archivos locales en Logos/) ---
-// Nombre del archivo: debe coincidir con la clave (case-insensitive)
-// Agregar nuevas marcas acá cuando se sume el archivo en la carpeta Logos/
-const BRAND_LOGO_FILES = {
-  'YAMAHA':  'Fuentes/Logos/yamaha-logo.png',
-  'HONDA':   'Fuentes/Logos/logo-honda.png',
-  'KELLER':  'Fuentes/Logos/keller-logo.jfif',
-  'MOTOMEL': 'Fuentes/Logos/motomel-logo.png',
-  'GILERA':  'Fuentes/Logos/gilera-logo.png',
-  'CORVEN':  'Fuentes/Logos/corven-logo.png',
-  'ZANELLA': 'Fuentes/Logos/zanella-logo.png',
-  'MONDIAL': 'Fuentes/Logos/mondial-logo.png',
-};
-
-function brandBadge(marca) {
-  const hue = [...marca].reduce((h,c) => h + c.charCodeAt(0)*37, 0) % 360;
-  const fs  = marca.length > 8 ? '9px' : marca.length > 5 ? '10px' : '11px';
-  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:230px;height:50px;border-radius:6px;background:hsl(${hue},55%,38%);color:#fff;font-size:${fs};font-weight:700;flex-shrink:0;text-align:center;padding:3px;line-height:1.2">${marca}</span>`;
-}
-
-function brandLogoHtml(marca) {
-  const file = BRAND_LOGO_FILES[marca.toUpperCase()];
-  if (!file) return brandBadge(marca);
-  return `<img src="${file}" alt="${marca}" data-marca="${marca}"
-    style="width:230px;height:auto;max-height:80px;object-fit:contain;flex-shrink:0;vertical-align:middle"
-    onerror="this.outerHTML=brandBadge(this.dataset.marca)">`;
-}
-
 // --- Auto insights ---
 function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   // Helpers de formato
@@ -667,8 +625,12 @@ function generateAutoInsights(allFiltered, mA, mB, lA, lB) {
   // ===== (4) ZONAS: variación de cada zona =====
   const zonaMap = {};
   allFiltered.forEach(r => {
-    const z = r.zona;
+    let z = r.zona;
     if (!z || z === 'RUNA') return; // ignorar vacíos y RUNA
+    // Coherencia con el filtro: en la base "AMBA" abarca TODA la provincia de Bs As.
+    // Acotamos "AMBA" al conurbano curado (AMBA_SET) y mandamos el resto a "Bs As (interior)",
+    // así el número de AMBA de esta caja coincide con el que da filtrar por zona = AMBA.
+    if (z === 'AMBA') z = AMBA_SET.has(r.localidad) ? 'AMBA' : 'Buenos Aires (interior)';
     if (!zonaMap[z]) zonaMap[z] = { a:0, b:0 };
     zonaMap[z].a += (r[mA]||0)*NF_A; zonaMap[z].b += r[mB]||0;
   });
@@ -908,6 +870,10 @@ function computeNormA(mA, mB) {
 // --- "Ver más": corte inicial en TOP_N, y suma de a TOP_N por click ---
 const TOP_N = 20;
 let brandsLimit = TOP_N, modelsLimit = 30;   // modelos arrancan en 30, marcas en 20
+// Al cambiar un filtro/mes, volver al corte inicial (evita que el "Ver más" expandido
+// quede pegado sobre un conjunto de datos distinto)
+function resetPaging() { brandsLimit = TOP_N; modelsLimit = 30; }
+function resetPagingAndUpdate() { resetPaging(); updateInsights(); }
 function showMore(which) {
   if (which === 'brands') brandsLimit += TOP_N;
   else modelsLimit += TOP_N;
@@ -925,7 +891,6 @@ function verMasRow(total, which, colspan) {
 function updateInsights() {
   const mA        = document.getElementById('ins-month-a').value;
   const mB        = document.getElementById('ins-month-b').value;
-  const minU      = 1;   // sin control de mínimo: se muestran todas las filas con ventas
   if (!mA || !mB) return;
   const lA = MONTH_LABELS[MONTHS.indexOf(mA)];
   const lB = MONTH_LABELS[MONTHS.indexOf(mB)];
@@ -1099,39 +1064,8 @@ function updateInsights() {
 
 
 
-function enableColumnResize(table) {
-  if (!table || table.dataset.resizable) return;
-  table.dataset.resizable = 'true';
-  const ths = table.querySelectorAll('th');
-  ths.forEach((th, i) => {
-    if (i === ths.length - 1) return;
-    const handle = document.createElement('div');
-    handle.className = 'col-resize';
-    th.appendChild(handle);
-    handle.addEventListener('mousedown', e => {
-      const nextTh = ths[i + 1];
-      if (!nextTh) return;
-      const startX = e.clientX;
-      const startW1 = th.offsetWidth;
-      const startW2 = nextTh.offsetWidth;
-      const onMove = ev => {
-        const delta = ev.clientX - startX;
-        th.style.width = Math.max(60, startW1 + delta) + 'px';
-        nextTh.style.width = Math.max(60, startW2 - delta) + 'px';
-      };
-      const onUp = () => {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-      };
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-      e.preventDefault();
-    });
-  });
-}
-
 // --- Boot ---
-(function renderUpdateBanner(){
+function renderUpdateBanner(){
   const banner = document.getElementById('update-banner');
   if (!banner) return;
   if (typeof LAST_UPDATE === 'undefined' || !LAST_UPDATE) {
@@ -1149,17 +1083,25 @@ function enableColumnResize(table) {
   const hace = dias <= 0 ? 'hoy' : dias === 1 ? 'hace 1 día' : 'hace ' + dias + ' días';
   banner.className = 'update-banner ' + cls;
   banner.innerHTML = '<span class="ub-icon">' + icon + '</span><div>Última actualización: ' + LAST_UPDATE + ' (' + hace + ')</div>';
-})();
+}
 
-// Init insights selectors
-const insOpts = MONTHS.map(m => `<option value="${m}">${MONTH_LABELS[MONTHS.indexOf(m)]}</option>`).join('');
-document.getElementById('ins-month-a').innerHTML = insOpts;
-document.getElementById('ins-month-b').innerHTML = insOpts;
-document.getElementById('ins-month-a').value = MONTHS[MONTHS.length - 2];
-document.getElementById('ins-month-b').value = MONTHS[MONTHS.length - 1];
+// Arranque de la app — se ejecuta cuando data.js ya fue bajado e inyectado (ver data-loader.js).
+function initApp() {
+  MONTHS = ALL_MONTHS;
+  MONTH_LABELS = MONTHS.map(m => { const [mm, yyyy] = m.split('-'); return yyyy + '.' + mm; });
 
-initFilters();
-updateInsights();
+  renderUpdateBanner();
+
+  // Init insights selectors
+  const insOpts = MONTHS.map(m => `<option value="${m}">${MONTH_LABELS[MONTHS.indexOf(m)]}</option>`).join('');
+  document.getElementById('ins-month-a').innerHTML = insOpts;
+  document.getElementById('ins-month-b').innerHTML = insOpts;
+  document.getElementById('ins-month-a').value = MONTHS[MONTHS.length - 2];
+  document.getElementById('ins-month-b').value = MONTHS[MONTHS.length - 1];
+
+  initFilters();
+  updateInsights();
+}
 
 // --- Carga diferida de la historia (2013-2023) en segundo plano ---
 // data.js trae solo lo reciente para render instantáneo; al terminar de
@@ -1176,11 +1118,9 @@ function onHistoriaLoaded() {
   populateModelos();
   updateInsights();
 }
-(function() {
-  const s = document.createElement('script');
-  s.src = 'https://cazdzwigtazmecixhuiw.supabase.co/storage/v1/object/public/cadecom/data-historia.js'; s.async = true;
-  document.body.appendChild(s);
-})();
+
+// Bajar datos (autenticado, bucket privado) y arrancar. La historia va en diferido.
+loadCadecomData({ onReady: initApp, withHistoria: true });
 </script>
 </body>
 </html>
