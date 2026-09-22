@@ -21,6 +21,7 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import * as XLSX from 'xlsx';
+import { buildMercado } from './build-mercado.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(__dirname, '..');       // Desktop/Pacheco/Cadecom
@@ -402,6 +403,18 @@ async function main() {
 
   await uploadStorage(auth, 'data.js', new TextEncoder().encode(res.dataJs), 'application/javascript', 60);
   log('   ✓ data.js');
+
+  // Extracto compacto de mercado para el Dashboard de la Calculadora
+  // (patentamiento mapeado a modelos de la Calculadora, por modelo×localidad×mes).
+  try {
+    const mercado = buildMercado(res.dataJs);
+    const mercadoJson = JSON.stringify(mercado);
+    fs.writeFileSync(path.join(OUT, 'mercado-ciclofox.json'), mercadoJson);
+    await uploadStorage(auth, 'mercado-ciclofox.json', new TextEncoder().encode(mercadoJson), 'application/json', 60);
+    log('   ✓ mercado-ciclofox.json (' + (mercadoJson.length / 1024).toFixed(0) + ' KB)');
+  } catch (e) {
+    log('   ⚠ mercado-ciclofox.json falló (no corta el sync): ' + (e.message || e));
+  }
 
   // data-historia.js solo tiene meses < 2024: al cargar un año reciente no cambia.
   // Es el archivo más pesado (~22 MB) y el que más falla al subir, así que lo
