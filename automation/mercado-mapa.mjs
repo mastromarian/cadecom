@@ -4,10 +4,13 @@
 
    La CLAVE debe coincidir EXACTO con motos.modelo de la Calculadora.
    El VALOR es la lista de nombres de modelo tal como aparecen en Cadecom
-   (un modelo comercial puede figurar con 1+ nombres en el registro).
+   (varios trims de la Calculadora pueden compartir un mismo nombre de Cadecom;
+   el builder deduplica por nombre de Cadecom para que el total de marca no
+   cuente doble). Lista vacía [] = modelo sin patentamiento en Cadecom → el
+   Dashboard lo muestra "sin mapear".
 
-   Confirmado con Mariano (22/9/2026) para Yamaha. Al sumar marcas nuevas,
-   agregar acá su bloque.
+   Confirmado con Mariano (22/9/2026). Al sumar/ajustar modelos, editar acá y
+   regenerar (lo hace solo el sync-cadecom.mjs).
    ════════════════════════════════════════════════════════════════ */
 export const MERCADO_MAPA = {
   YAMAHA: {
@@ -26,6 +29,52 @@ export const MERCADO_MAPA = {
     'Tenere 700':   ['TENERE 700'],
     'MT 07':        ['MT07'],
     'FZ X':         ['FZ-X'],
+  },
+  MOTOMEL: {
+    'CG S2':                  ['S2'],        // CG S2 y CG S2 Full comparten "S2" (dedup en el total)
+    'CG S2 Full':             ['S2'],
+    'Skua 250':               ['SKUA 250'],
+    'Skua 150':               [],            // es otra moto: no matchea con las Skua del registro
+    'Blitz One Full':         ['B 110'],     // las Blitz se unifican en "B 110"
+    'Blitz One Start (Base)': ['B 110'],
+  },
+  VOGE: {
+    '300 Rally':            ['VOGE 300 RALLY'],
+    'DS 300':              ['VOGE 300DS'],
+    'DS 500':              ['VOGE 500DS'],
+    'DS525X BLACK NIGHT':  ['VOGE DS525X'],
+    'SR3':                 ['VOGE SR3'],
+  },
+  SIAM: {
+    'Nomad 150 End': ['NOMAD 150'],
+    'QU 110 Full':   ['QU 110'],
+    'Trender 150cc': ['TRENDER 150'],
+  },
+  HERO: {
+    'Hunk 125':      ['HUNK 125R'],
+    'Hunk 150':      ['HUNK 150'],
+    'Hunk 150 Xtec': ['HUNK150 XTEC'],
+    'Xpulse 200':    ['XPULSE 200'],
+  },
+  SUZUKI: {
+    'AX100': ['AX 100'],
+    'GX150': ['GSX150'],
+  },
+  GAF: {
+    'GX 140': ['GX 140'],
+    'GX 70':  ['GX 70'],
+  },
+  TVS: {
+    'Raider 125': ['RAIDER'],
+  },
+  SYM: {
+    'JOYRIDE 300': ['JOYRIDE 300'],
+  },
+  MORBIDELLI: {
+    'N300': [],   // sin patentamiento reciente en Cadecom
+  },
+  IKA: {
+    'Durban End.': [],
   },
 };
 

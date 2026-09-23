@@ -10,15 +10,20 @@
      generado, last_update,
      meses: ["MM-YYYY", ...],                 // meses presentes (recientes)
      zonas: { "AMBA": [loc...], "ZONA PACHECO":[...], "NOA":[...], ... },
-     marcas: {
-       "YAMAHA": {
-         "FZ 4.0": { "SAN ISIDRO": { "09-2026": 3, ... }, ... },  // sparse: solo != 0
-         ...
-       }
+     mercado: {                               // unidades por NOMBRE de Cadecom
+       "S2": { "SAN ISIDRO": { "09-2026": 3, ... }, ... },   // sparse: solo != 0
+       ...
+     },
+     marcas: {                                // mapeo Calc → nombres de Cadecom
+       "YAMAHA": { "FZ 4.0": ["FZ-S FI V4.0 ABS"], ... },
+       "MOTOMEL": { "CG S2": ["S2"], "CG S2 Full": ["S2"], ... }
      }
    }
    Se agrega por localidad (no por zona) para que el multiselect de zonas de
-   la Calculadora una localidades sin doble contar (AMBA ⊃ Zona Pacheco).
+   la Calculadora una localidades sin doble contar (AMBA ⊃ Zona Pacheco). Se
+   guarda por NOMBRE de Cadecom (no por modelo Calculadora) para que, cuando
+   varios trims comparten un modelo de mercado (ej. las dos "CG S2" → "S2"), el
+   total de marca lo cuente una sola vez (unión de nombres distintos).
 
    Uso:  node build-mercado.mjs <ruta data.js> [<salida.json>]
    Exporta buildMercado(dataJsText) para engancharlo en sync-cadecom.mjs.
@@ -33,26 +38,23 @@ export function buildMercado(dataJsText) {
   vm.runInContext(dataJsText + '\nthis.OUT={RAW_DATA,MODELO_INFO,ALL_MONTHS,ZONA_LOCALIDADES,LAST_UPDATE};', ctx);
   const { RAW_DATA, MODELO_INFO, ALL_MONTHS, ZONA_LOCALIDADES, LAST_UPDATE } = ctx.OUT;
 
-  // Índice inverso: nombre-Cadecom → { marca, modeloCalc }
-  const rev = {};
-  for (const [marca, modelos] of Object.entries(MERCADO_MAPA)) {
-    for (const [modeloCalc, nombresCadecom] of Object.entries(modelos)) {
-      for (const n of nombresCadecom) rev[n] = { marca, modeloCalc };
+  // Set de nombres de Cadecom que nos interesan (los mapeados, no vacíos)
+  const nombresCadecom = new Set();
+  for (const modelos of Object.values(MERCADO_MAPA)) {
+    for (const nombres of Object.values(modelos)) {
+      for (const n of nombres) nombresCadecom.add(n);
     }
   }
 
   const monthRe = /^\d{2}-\d{4}$/;
-  const marcas = {};
+  const mercado = {};   // nombreCadecom → { loc → { mm → u } }
   const mesesSet = new Set();
 
   for (const r of RAW_DATA) {
-    const hit = rev[r.o];
-    if (!hit) continue;
-    const { marca, modeloCalc } = hit;
+    if (!nombresCadecom.has(r.o)) continue;
     const loc = r.l;
-    (marcas[marca] ??= {});
-    (marcas[marca][modeloCalc] ??= {});
-    const byMonth = (marcas[marca][modeloCalc][loc] ??= {});
+    (mercado[r.o] ??= {});
+    const byMonth = (mercado[r.o][loc] ??= {});
     for (const k in r) {
       if (!monthRe.test(k)) continue;
       const u = r[k] || 0;
@@ -78,7 +80,8 @@ export function buildMercado(dataJsText) {
     last_update: LAST_UPDATE || null,
     meses,
     zonas,
-    marcas,
+    mercado,
+    marcas: MERCADO_MAPA,   // mapeo Calc → nombres de Cadecom (para deduplicar en el total)
   };
 }
 
@@ -93,5 +96,5 @@ if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('build-merca
   fs.writeFileSync(outPath, json);
   const nModelos = Object.values(out.marcas).reduce((s, m) => s + Object.keys(m).length, 0);
   console.log(`OK → ${outPath}`);
-  console.log(`  ${(json.length / 1024).toFixed(1)} KB | meses: ${out.meses.length} (${out.meses[0]}..${out.meses.at(-1)}) | zonas: ${Object.keys(out.zonas).length} | marcas: ${Object.keys(out.marcas).length} | modelos: ${nModelos}`);
+  console.log(`  ${(json.length / 1024).toFixed(1)} KB | meses: ${out.meses.length} (${out.meses[0]}..${out.meses.at(-1)}) | zonas: ${Object.keys(out.zonas).length} | marcas: ${Object.keys(out.marcas).length} | modelos: ${nModelos} | nombres mercado: ${Object.keys(out.mercado).length}`);
 }
