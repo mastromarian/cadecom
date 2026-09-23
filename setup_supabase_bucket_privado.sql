@@ -25,9 +25,9 @@ as $$
     select 1 from public.profiles p
     where p.id = auth.uid()
       and (
-        lower(p.role) = 'dueno'
-        or lower(p.role) = 'dueño'
-        or lower(p.role) like 'gerencia%'
+        lower(p.role::text) = 'dueno'
+        or lower(p.role::text) = 'dueño'
+        or lower(p.role::text) like 'gerencia%'
       )
   );
 $$;

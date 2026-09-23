@@ -243,6 +243,36 @@ async function fetchText(url) {
   return await r.text();
 }
 
+// Lectura AUTENTICADA del bucket (para cuando el bucket es privado). Si hay auth,
+// baja vía la API de Storage con el token; si no o si falla, cae al endpoint público
+// (que solo funciona mientras el bucket siga público).
+async function fetchStorageAuth(name, auth) {
+  const url = SUPABASE_URL + '/storage/v1/object/' + BUCKET + '/' + name;
+  let lastErr;
+  for (let i = 1; i <= 3; i++) {
+    try {
+      const r = await fetch(url, { cache: 'no-store', headers: { apikey: auth.apikey, authorization: 'Bearer ' + auth.token } });
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' al bajar ' + name);
+      return r;
+    } catch (e) {
+      lastErr = e;
+      if (i < 3) { log('   ⚠ intento ' + i + ' de bajar ' + name + ' falló (' + (e.cause?.code || e.message) + '), reintentando…'); await new Promise(res => setTimeout(res, i * 2000)); }
+    }
+  }
+  throw lastErr;
+}
+async function readStorage(name, auth, binary) {
+  if (auth) {
+    try {
+      const r = await fetchStorageAuth(name, auth);
+      return binary ? new Uint8Array(await r.arrayBuffer()) : await r.text();
+    } catch (e) {
+      log('   ⚠ lectura autenticada de ' + name + ' falló (' + e.message + '), pruebo endpoint público…');
+    }
+  }
+  return binary ? await fetchBuf(STORAGE + name) : await fetchText(STORAGE + name);
+}
+
 // ── auth Supabase (password grant) o service key ──
 async function getAuth() {
   const svc = process.env.CADECOM_SERVICE_KEY;
@@ -309,12 +339,17 @@ async function main() {
 
   const CadecomBuild = loadCadecomBuild();
 
+  // Auth temprano: el bucket puede ser privado → las lecturas también van autenticadas.
+  const auth = await getAuth();
+  if (auth) log('🔐 Autenticado: ' + auth.mode);
+  else log('⚠  Sin credenciales: leo del endpoint público (solo sirve si el bucket sigue público).');
+
   log('⏬ Bajando BD_Geo, BD_Motos, data.js, data-historia.js …');
   const [geoBuf, motosBuf, dataJsText, historiaJsText] = await Promise.all([
-    fetchBuf(STORAGE + 'BD_Geo.xlsx'),
-    fetchBuf(STORAGE + 'BD_Motos.xlsx'),
-    fetchText(STORAGE + 'data.js'),
-    fetchText(STORAGE + 'data-historia.js'),
+    readStorage('BD_Geo.xlsx', auth, true),
+    readStorage('BD_Motos.xlsx', auth, true),
+    readStorage('data.js', auth, false),
+    readStorage('data-historia.js', auth, false),
   ]);
 
   const state = buildStateFromDataFiles(dataJsText, historiaJsText);
@@ -386,9 +421,7 @@ async function main() {
     return;
   }
 
-  const auth = await getAuth();
   if (!auth) die('Faltan credenciales para subir. Completá automation/.env (CADECOM_ADMIN_EMAIL/PASSWORD o CADECOM_SERVICE_KEY), o corré con --dry-run.');
-  log('\n🔐 Autenticado: ' + auth.mode);
 
   log('⏫ Subiendo a Supabase Storage …');
   // Catálogo actualizado (modelos nuevos y/o cilindradas corregidas)
