@@ -29,6 +29,7 @@ export const MERCADO_MAPA = {
     'Tenere 700':   ['TENERE 700'],
     'MT 07':        ['MT07'],
     'FZ X':         ['FZ-X'],
+    'TTR 230':      ['TTR230'],             // 27/9
   },
   MOTOMEL: {
     'CG S2':                  ['S2'],        // CG S2 y CG S2 Full comparten "S2" (dedup en el total)
@@ -75,6 +76,13 @@ export const MERCADO_MAPA = {
   },
   IKA: {
     'Durban End.': [],
+  },
+  // 27/9 (Mariano: "agregar todas las marcas que tengamos, falta CF MOTO"). Catálogo = marca 'Cfmoto'.
+  // Solo motos: los cuatriciclos de CF vienen en Cadecom como otra marca (CFMOTOATV).
+  CFMOTO: {
+    '650 Mt':          ['650MT'],
+    '700 Mt':          ['700MT'],
+    '800 Mt Explorer': ['800MT EXPLORE EDITION'],
   },
 };
 

@@ -67,6 +67,25 @@ export function buildMercado(dataJsText) {
   // Orden cronológico de meses según ALL_MONTHS
   const meses = ALL_MONTHS.filter(m => mesesSet.has(m));
 
+  /* 27/9: TODOS los modelos de cada marca (también los que Ciclofox no vende, ej. la CF 450),
+     para que el Dashboard muestre el ranking completo de la marca y el total real. Solo los
+     últimos 3 meses (el Dashboard compara el último contra el anterior) para que el archivo
+     no crezca: { MARCA: { nombreCadecom: { loc: { mm: u } } } }. */
+  const ult3 = new Set(ALL_MONTHS.filter(m => mesesSet.has(m)).slice(-3));
+  const marcasCadecom = new Set(Object.keys(MERCADO_MAPA));
+  const mercadoMarca = {};
+  for (const r of RAW_DATA) {
+    if (!marcasCadecom.has(r.marca)) continue;
+    let byMonth = null;
+    for (const k in r) {
+      if (!ult3.has(k)) continue;
+      const u = r[k] || 0;
+      if (!u) continue;
+      byMonth ??= (((mercadoMarca[r.marca] ??= {})[r.o] ??= {})[r.l] ??= {});
+      byMonth[k] = (byMonth[k] || 0) + u;
+    }
+  }
+
   // Zonas seleccionables (igual criterio que shared.js de Cadecom):
   // AMBA curada + Zona Pacheco + el resto de ZONA_LOCALIDADES (menos el 'AMBA' crudo = toda Bs As)
   const zonas = { 'AMBA': AMBA_LOCS.slice(), [ZONA_PACHECO]: ZONA_PACHECO_LOCS.slice() };
@@ -82,6 +101,7 @@ export function buildMercado(dataJsText) {
     zonas,
     mercado,
     marcas: MERCADO_MAPA,   // mapeo Calc → nombres de Cadecom (para deduplicar en el total)
+    mercado_marca: mercadoMarca,   // 27/9: todos los modelos de cada marca, últimos 3 meses
   };
 }
 
