@@ -43,6 +43,7 @@
           'style="width:100%;margin-bottom:8px;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;outline:none;font-family:inherit;">' +
         '<input id="auth-pass" type="password" placeholder="Contraseña" autocomplete="current-password" ' +
           'style="width:100%;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;outline:none;font-family:inherit;">' +
+        '<div id="auth-turnstile" style="margin:8px 0 0"></div>' +
         '<div id="auth-err" style="color:#e3000f;font-size:12px;font-weight:600;min-height:16px;margin-top:8px;"></div>' +
         '<button id="auth-btn" style="width:100%;margin-top:10px;padding:11px;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Entrar</button>' +
       '</div>' +
@@ -70,6 +71,7 @@
     const sub = $('auth-sub'), form = $('auth-form');
     if (sub) sub.textContent = msg || 'Ingresá con tu usuario';
     if (form) form.style.display = 'block';
+    tsCargar();   // Turnstile se arma cuando se ve el login
     const email = $('auth-email'); if (email) email.focus();
   }
 
@@ -147,6 +149,38 @@
     denyView(u.email);                                                       // lectura genuino → bloqueado
   }
 
+  /* ── Turnstile: CAPTCHA invisible de Cloudflare (28/9/2026) ──
+     Cuando la protección está activa en Supabase (Auth → Attack Protection), cada
+     inicio de sesión tiene que llevar un token de Turnstile. En modo "managed" el
+     usuario no ve nada salvo que Cloudflare sospeche de un bot. Con la clave vacía
+     no hace nada (login como antes). Los tokens son de un solo uso → tsReset(). */
+  const TURNSTILE_SITE_KEY = '0x4AAAAAAFFs3P5Fdim-7Idh';
+  let TS_WIDGET = null, TS_TOKEN = '', TS_FALLO = false;   // TS_FALLO: Cloudflare no respondió → no se espera
+  function tsCargar() {
+    const cont = document.getElementById('auth-turnstile');
+    if (!TURNSTILE_SITE_KEY || !cont || TS_WIDGET !== null) return;
+    const render = () => {
+      if (TS_WIDGET !== null || !window.turnstile) return;
+      TS_WIDGET = turnstile.render(cont, { sitekey: TURNSTILE_SITE_KEY, appearance: 'interaction-only', language: 'es',
+        callback: t => { TS_TOKEN = t; }, 'expired-callback': () => { TS_TOKEN = ''; }, 'error-callback': () => { TS_TOKEN = ''; TS_FALLO = true; } });
+    };
+    if (window.turnstile) return render();
+    const ya = document.getElementById('ts-script');
+    if (ya) { ya.addEventListener('load', render); return; }
+    const s = document.createElement('script'); s.id = 'ts-script'; s.async = true; s.onload = render;
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    document.head.appendChild(s);
+  }
+  // Token para Supabase: espera hasta 8 s a que Cloudflare lo emita. undefined = sin CAPTCHA configurado.
+  async function tsToken() {
+    if (!TURNSTILE_SITE_KEY) return undefined;
+    tsCargar();
+    const t0 = Date.now();
+    while (!TS_TOKEN && !TS_FALLO && Date.now() - t0 < 8000) await new Promise(r => setTimeout(r, 100));
+    return TS_TOKEN || undefined;
+  }
+  function tsReset() { TS_TOKEN = ''; TS_FALLO = false; if (window.turnstile && TS_WIDGET !== null) { try { turnstile.reset(TS_WIDGET); } catch (e) {} } }
+
   async function doLogin() {
     const email = $('auth-email').value.trim();
     const pass  = $('auth-pass').value;
@@ -154,9 +188,11 @@
     errEl.textContent = '';
     if (!email || !pass) { errEl.textContent = 'Completá email y contraseña'; return; }
     btn.disabled = true; btn.textContent = 'Entrando…';
-    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    const captchaToken = await tsToken();   // Turnstile (si está configurado)
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass, options: captchaToken ? { captchaToken } : undefined });
+    tsReset();
     btn.disabled = false; btn.textContent = 'Entrar';
-    if (error) { errEl.textContent = 'Email o contraseña incorrectos'; $('auth-pass').select(); return; }
+    if (error) { errEl.textContent = /captcha/i.test(error.message || '') ? 'No se pudo verificar el navegador. Recargá la página y probá de nuevo.' : 'Email o contraseña incorrectos'; $('auth-pass').select(); return; }
     await enter(getStoredSession());
   }
 
